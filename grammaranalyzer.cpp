@@ -280,9 +280,13 @@ QSet<Symbol *> GrammarAnalyzer::calcuFirst(QVector<Symbol *> &symbolList)
     QSet<Symbol*> first;
     for(int i = 0; i < symbolList.size(); i++) {
         first.unite(calcuFirst(symbolList[i]));
+        // 结果中不含空串 停止搜索 返回
         if(!first.contains(blankTerm)) {
             break;
-        } else {
+        }
+        // 含空串则并入除了空串的其他终结符 并继续搜索
+        else {
+            // 搜索到字符串最后 强制结束
             if(i == symbolList.size() - 1) {
                 break;
             }
@@ -325,9 +329,17 @@ QSet<Symbol *> GrammarAnalyzer::calcuFollow(NonTerminal *nonTerm)
             }
         }
     }
-
     nonTerm->follow = follow;
     return follow;
+}
+
+void GrammarAnalyzer::clearSetCalcuResult()
+{
+    for(int i = 0; i < grammar.size(); i++) {
+        grammar[i]->lhs->first.clear();
+        grammar[i]->lhs->follow.clear();
+        grammar[i]->lhs->synch.clear();
+    }
 }
 
 void GrammarAnalyzer::establishLhsProdRelation()
