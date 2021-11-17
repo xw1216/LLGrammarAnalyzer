@@ -1,6 +1,9 @@
 #ifndef GRAMMARANALYZER_H
 #define GRAMMARANALYZER_H
 
+#include <QList>
+#include <QMultiMap>
+
 #include "production.h"
 #include "lexanalyzer.h"
 #include "grammarparser.h"
@@ -82,11 +85,40 @@ private:
 
 
     /*                提取公因子               */
+
+    /**
+     * @brief factoringProduction
+     */
     void factoringProduction();
+
+    /**
+     * @brief replaceFirstNonTerm
+     * @param target
+     * @param index
+     * @param replace
+     */
     void replaceFirstNonTerm(Production* target, int index, Production* replace);
+
+    /**
+     * @brief mergeSameProd
+     * @param target
+     */
     void mergeSameProd(Production* target);
-    QVector<QVector<int>> calcuFirstIntersect(Production* target);
-    void createFactorProd(int factorCnt, QVector<QVector<Symbol*>> & rhs);
+
+    /**
+     * @brief calcuProdIntersect 计算当前语法产生式的候选首集的最大交集对应右部的索引
+     * @param target
+     * @return
+     */
+    QVector<int> calcuProdIntersect(Production* target);
+
+    /**
+     * @brief createFactorProd
+     * @param factorCnt
+     * @param rhs
+     */
+    void createFactorProd(int factorCnt, Production * prod, QVector<int> & intersect);
+
 
 
     /*             FIRST FOLLOW SYNCH 集合计算          */

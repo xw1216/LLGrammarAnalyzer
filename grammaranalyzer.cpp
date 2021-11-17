@@ -229,6 +229,112 @@ void GrammarAnalyzer::recordTerm(Terminal *term)
     }
 }
 
+// TODO 调用前需要重新登记非终结符的对应产生式编号
+void GrammarAnalyzer::factoringProduction()
+{
+    for(int i = 0; i < grammar.size(); i++) {
+        for(int j = 0; j < grammar[i]->rhs.size(); j++) {
+            // 若产生式首符为非终结符 反复替换直到非终结符或空串
+            if(grammar[i]->rhs[j].size() > 0 && grammar[i]->rhs[j][0]->getType() == Symbol::Type::NONTERMINAL) {
+                NonTerminal* lhs = (NonTerminal*)grammar[i]->rhs[j][0];
+                replaceFirstNonTerm(grammar[i], j, grammar[lhs->indexOfProd]);
+                j--;
+            }
+        }
+        // 合并该语法式中所有的相同产生式
+        mergeSameProd(grammar[i]);
+
+        bool isFactored = false;
+        int factorCnt = 0;
+        // 计算所有的候选首符交集 提公因子创建新的产生式 合并旧产生式内的同类项
+        // 合并空串等相同产生式
+        while(!isFactored) {
+            QVector<int> prodIntersect = calcuProdIntersect(grammar[i]);
+            if(prodIntersect.size() <= 0)  {
+                isFactored = true;
+            } else {
+                factorCnt++;
+                createFactorProd(factorCnt++, grammar[i], prodIntersect);
+            }
+        }
+    }
+}
+
+void GrammarAnalyzer::replaceFirstNonTerm(Production *target, int index, Production *replace)
+{
+    // 已经确保候选首符为需要替换的非终结符
+    QVector<Symbol*> src = target->rhs[index];
+    refArrayDec(src);
+    src.remove(0);
+    for(int i = 0; i < replace->rhs.size(); i++) {
+        QVector<Symbol*> temp = replace->rhs[i] + src;
+        refArrayInc(temp);
+        target->rhs.push_back(temp);
+    }
+    target->rhs.remove(index);
+}
+
+void GrammarAnalyzer::mergeSameProd(Production *target)
+{
+    for(int i = target->rhs.size() - 1; i >= 0 ; i--) {
+        for(int j = target->rhs.size() - 1; j > i; j--) {
+            if (target->rhs[i].size() != target->rhs[j].size()) {
+                continue;
+            }
+            else if(target->rhs[i].size() == 0 && target->rhs[j].size() == 0) {
+                target->rhs.remove(j);
+            }
+            else {
+                bool isProdSame = true;
+                for(int k = 0; k < target->rhs[i].size(); k++) {
+                    if(target->rhs[i][k] != target->rhs[j][k]) { isProdSame = false; break; }
+                }
+                if(!isProdSame) { continue; }
+                else {
+                    // 移除位置靠后的相同产生式 这样就不同手动递减控制变量
+                    refArrayDec(target->rhs[j]);
+                    target->rhs.remove(j);
+                }
+            }
+        }
+    }
+}
+
+// 计算当前语法产生式的候选首集的交集对应右部的索引 直到最后一个被找出后返回空集
+QVector<int> GrammarAnalyzer::calcuProdIntersect(Production *target)
+{
+    QMultiMap<Symbol*, int> multiMap = QMultiMap<Symbol*, int>();
+    QVector<int> indexList;
+    for(int i = 0; i < target->rhs.size(); i++) {
+        QSet<Symbol*> temp = calcuFirst(target->rhs[i]);
+        if(temp.size() == 1) {
+            multiMap.insert(*(temp.begin()), i);
+        } else {
+            sendErrorMsg("计算错误");
+            return indexList;
+        }
+    }
+    QList<Symbol*> keyList = multiMap.uniqueKeys();
+    for(int i = 0; i < keyList.size(); i++) {
+        indexList = multiMap.values(keyList[i]).toVector();
+        if(indexList.size() >= 2) {
+            std::sort(indexList.begin(), indexList.end());
+            return indexList;
+        }
+    }
+    indexList.clear();
+    return indexList;
+}
+
+void GrammarAnalyzer::createFactorProd(int factorCnt, Production * prod, QVector<int> & intersect)
+{
+    // 找出指定索引产生式中的最长公因子
+
+    // 创建新的产生式并加入语法集中
+
+    // 更改已经经过提公因子的原有产生式
+}
+
 QSet<Symbol*> GrammarAnalyzer::calcuFirst(Symbol *sym)
 {
     QSet<Symbol*> first;
@@ -278,6 +384,12 @@ QSet<Symbol*> GrammarAnalyzer::calcuFirst(Symbol *sym)
 QSet<Symbol *> GrammarAnalyzer::calcuFirst(QVector<Symbol *> &symbolList)
 {
     QSet<Symbol*> first;
+    // 输入为空产生式 直接返回 first 集为 epsilon
+    if(symbolList.size() <= 0) {
+        first.insert(blankTerm);
+        return first;
+    }
+
     for(int i = 0; i < symbolList.size(); i++) {
         first.unite(calcuFirst(symbolList[i]));
         // 结果中不含空串 停止搜索 返回
