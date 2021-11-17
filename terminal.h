@@ -13,6 +13,7 @@ public:
     Type getType() const  override;
     bool isBlank() const override;
     static bool isRecognized(QString name);
+    static int termIndex(QString name);
 
 public:
     static const QStringList terminalList;

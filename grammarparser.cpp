@@ -93,7 +93,8 @@ void GrammarParser::resolveProduction(QString &single)
 void GrammarParser::terminalHandler(Production* prod, QString terminalName)
 {
     if(prod == nullptr || terminalName.isEmpty()) {return;}
-    if(terminalName == "$blank") { return; }
+    terminalName.remove(0, 1);
+    if(terminalName == "blank") { return; }
     Terminal* terminal = findSameTerminal(terminalName);
     if(!terminal) {
         terminal = new Terminal();
@@ -103,12 +104,11 @@ void GrammarParser::terminalHandler(Production* prod, QString terminalName)
             terminal = nullptr;
             return;
         }
+        terminal->setName(terminalName);
         terms.push_back(terminal);
     }
     terminal->refInc();
-    terminal->setName(terminalName.remove(QChar('$')));
     prod->insertRhs(terminal);
-
 }
 
 void GrammarParser::nonTerminalHandler(Production* prod, QString &nonTerminalName, bool isRHS, int indexOfProd)
@@ -118,10 +118,10 @@ void GrammarParser::nonTerminalHandler(Production* prod, QString &nonTerminalNam
     if(!nonTermimal) {
         nonTermimal = new NonTerminal();
         if(nonTermimal == nullptr) { return; }
+        nonTermimal->setName(nonTerminalName);
         nonTerms.push_back(nonTermimal);
     }
     nonTermimal->refInc();
-    nonTermimal->setName(nonTerminalName);
     if(isRHS) {
         prod->insertRhs(nonTermimal);
     } else {

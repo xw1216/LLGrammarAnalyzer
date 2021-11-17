@@ -49,8 +49,8 @@ public:
 private:
     LexAnalyzer* lex;                                                             // 词法分析器
     GrammarParser* parser;                                                  // 语法解析器
-    Terminal* endTerm = nullptr;                                           // 语句结束符
-    Terminal* blankTerm = nullptr;                                        // 子串 epsilon 符
+    Terminal* endTerm = nullptr;                                           // 语句结束符 仅在移除左递归后使用
+    Terminal* blankTerm = nullptr;                                        // 子串 epsilon 符 仅在移除左递归后使用
 
     QVector<Symbol*> analyStack;                                      // 分析栈
     QVector<QVector<AnalyTableItem>> analyTable;         // 分析表
@@ -78,47 +78,20 @@ private:
     void freeUnusedSymbol(QVector<bool> & usedProd);
 
 
-    /*          统计出现符号                  */
+    /*              统计出现符号              */
     void recordSymbols();
     void recordNonTerm(NonTerminal* nonTerm);
     void recordTerm(Terminal* term);
 
 
     /*                提取公因子               */
-
-    /**
-     * @brief factoringProduction
-     */
     void factoringProduction();
-
-    /**
-     * @brief replaceFirstNonTerm
-     * @param target
-     * @param index
-     * @param replace
-     */
-    void replaceFirstNonTerm(Production* target, int index, Production* replace);
-
-    /**
-     * @brief mergeSameProd
-     * @param target
-     */
+    void replaceFirstNonTerm(Production* target, QVector<QVector<int>>& intersect);
+    QVector<QVector<Symbol*> > genPreFactorProd(QVector<Symbol*> initProd);
     void mergeSameProd(Production* target);
-
-    /**
-     * @brief calcuProdIntersect 计算当前语法产生式的候选首集的最大交集对应右部的索引
-     * @param target
-     * @return
-     */
-    QVector<int> calcuProdIntersect(Production* target);
-
-    /**
-     * @brief createFactorProd
-     * @param factorCnt
-     * @param rhs
-     */
-    void createFactorProd(int factorCnt, Production * prod, QVector<int> & intersect);
-
+    QVector<QVector<int>> calcuProdIntersect(Production* target, bool isGroup = true);
+    int maxIntersectLength(Production* target, QVector<int> & intersect);
+    void createFactorProd(int factorCnt, Production * target, QVector<int> & intersect);
 
 
     /*             FIRST FOLLOW SYNCH 集合计算          */
@@ -130,9 +103,10 @@ private:
 
 
     /*                  LL(1) 分析表构建                         */
-
+    void reScaleAnalyTable();
+    void fillTableProd(Production* prod);
+    bool setAnalyTableItem(NonTerminal* lhs, Terminal* term, AnalyTableItem::Type type, Production* prod = nullptr);
     void getTableItemPos(NonTerminal* lhs, Terminal* term, int & x, int & y);
-    void setAnalyTableItemProd(int x, int y, AnalyTableItem::Type type, Production* prod = nullptr);
 
 
     /*                  分析过程与分析栈                        */
@@ -142,9 +116,7 @@ private:
     QString printAnalyStack();
 
 
-
-
-
+    /*                  错误信息                                */
     void sendErrorMsg(QString errMsg);
 
 };

@@ -33,9 +33,15 @@ bool Terminal::isBlank() const
 
 bool Terminal::isRecognized(QString name)
 {
-    if(terminalList.contains(name.remove(QChar('$')))) {
+    if(terminalList.contains(name)) {
         return true;
     } else {
         return false;
     }
 }
+
+int Terminal::termIndex(QString name)
+{
+    return terminalList.indexOf(name);
+}
+

@@ -59,6 +59,44 @@ void GrammarAnalyzer::parseGrammarFile()
     startNonTerm = grammar[0]->getLhs();
 }
 
+void GrammarAnalyzer::establishGrammar()
+{
+    resetGrammar();
+    removeLeftRecursion();
+    factoringProduction();
+    recordSymbols();
+}
+
+void GrammarAnalyzer::establishAnalyTable()
+{
+    reScaleAnalyTable();
+    for(int i = 0; i < grammar.size(); i++) {
+        // 根据 First 集填入表达式 根据 Synch 集填入 Synch 符号
+        fillTableProd(grammar[i]);
+        // 其他位置默认为空
+    }
+}
+
+void GrammarAnalyzer::resetGrammar()
+{
+    recordSymbols();
+    for(int i = 0; i < nonTermimals.size(); i++) {
+        delete nonTermimals[i];
+    }
+    for(int i = 0; i < termimals.size(); i++) {
+        delete  termimals[i];
+    }
+    nonTermimals.clear();
+    termimals.clear();
+    grammar.clear();
+    startNonTerm = nullptr;
+}
+
+bool GrammarAnalyzer::grammarAnalyStep()
+{
+
+}
+
 void GrammarAnalyzer::removeLeftRecursion()
 {
     int grammarNum = grammar.size();
@@ -75,6 +113,11 @@ void GrammarAnalyzer::removeLeftRecursion()
     establishLhsProdRelation();
     simplifyUnusedProduction();
     establishLhsProdRelation();
+
+    // TODO 需要移除语法式内相同的产生式
+    for(int i = 0; i < grammar.size(); i++) {
+        mergeSameProd(grammar[i]);
+    }
 }
 
 void GrammarAnalyzer::replaceDirectLeftRecursion(Production *target)
@@ -95,7 +138,6 @@ void GrammarAnalyzer::replaceDirectLeftRecursion(Production *target)
             // No Memory Leak
             QVector<Symbol*> temp = target->rhs[i];
             temp.removeAt(0);
-            lhsPrime->refInc();
             temp.push_back(lhsPrime);
             refArrayInc(temp);
             newProd->insertProduction(temp);
@@ -146,17 +188,14 @@ void GrammarAnalyzer::replaceIndirectLeftRecursion(Production *target, Productio
 
 void GrammarAnalyzer::simplifyUnusedProduction()
 {
-    QVector<bool> usedProd;
-    usedProd.resize(grammar.size());
+    QVector<bool> usedProd(grammar.size(), false);
 
     markUsedSymbol(usedProd);
     freeUnusedSymbol(usedProd);
 
-    int removeCnt = 0;
-    for(int i = 0; i < grammar.size(); i++) {
-        if(usedProd[i + removeCnt] == false) {
+    for(int i = grammar.size() - 1; i >= 0; i--) {
+        if(usedProd[i] == false) {
             grammar.removeAt(i);
-            removeCnt = removeCnt + 2;
             i--;
         }
     }
@@ -164,10 +203,6 @@ void GrammarAnalyzer::simplifyUnusedProduction()
 
 void GrammarAnalyzer::markUsedSymbol(QVector<bool> & usedProd)
 {
-    for(int i = 0; i < usedProd.size(); i++) {
-        usedProd[i] = false;
-    }
-
     QVector<NonTerminal*> bfsQeuee;
     bfsQeuee.push_back(startNonTerm);
     while(!(bfsQeuee.isEmpty())) {
@@ -178,7 +213,8 @@ void GrammarAnalyzer::markUsedSymbol(QVector<bool> & usedProd)
         for(int i = 0; i < grammar[indexOfProd]->rhs.size(); i++) {
             for(int j = 0; j < grammar[indexOfProd]->rhs[i].size(); j++) {
                 if(grammar[indexOfProd]->rhs[i][j]->getType() == Symbol::Type::NONTERMINAL) {
-                    bfsQeuee.push_back((NonTerminal*)grammar[indexOfProd]->rhs[i][j]);
+                    if(!usedProd[((NonTerminal*)(grammar[indexOfProd]->rhs[i][j]))->getIndexOfProd()])
+                    { bfsQeuee.push_back((NonTerminal*)grammar[indexOfProd]->rhs[i][j]); }
                 }
             }
         }
@@ -191,6 +227,7 @@ void GrammarAnalyzer::recordSymbols()
         recordNonTerm(grammar[i]->getLhs());
         for(int j = 0; j < grammar[i]->rhs.size(); j++) {
             for(int k = 0; k < grammar[i]->rhs[j].size(); k++) {
+                if(!(grammar[i]->rhs[j][k])) {continue; }
                 if(grammar[i]->rhs[j][k]->getType() == Symbol::Type::NONTERMINAL) {
                     recordNonTerm((NonTerminal *)grammar[i]->rhs[j][k]);
                 } else if(grammar[i]->rhs[j][k]->getType() == Symbol::Type::TERMINAL) {
@@ -218,6 +255,7 @@ void GrammarAnalyzer::recordNonTerm(NonTerminal *nonTerm)
 
 void GrammarAnalyzer::recordTerm(Terminal *term)
 {
+    if(term == blankTerm) {return; }
     bool isDuplicated = false;
     for(int i = 0; i < termimals.size(); i++) {
         if(termimals[i]->getName() == term->getName()) {
@@ -229,49 +267,68 @@ void GrammarAnalyzer::recordTerm(Terminal *term)
     }
 }
 
-// TODO 调用前需要重新登记非终结符的对应产生式编号
+
 void GrammarAnalyzer::factoringProduction()
 {
+    // 注意：调用前需要重新登记非终结符的对应产生式编号 且后续新增产生式也要添加 indexOfProd
+    // 注意：注意语法式数量变化以及 first follow 集的更新
     for(int i = 0; i < grammar.size(); i++) {
-        for(int j = 0; j < grammar[i]->rhs.size(); j++) {
-            // 若产生式首符为非终结符 反复替换直到非终结符或空串
-            if(grammar[i]->rhs[j].size() > 0 && grammar[i]->rhs[j][0]->getType() == Symbol::Type::NONTERMINAL) {
-                NonTerminal* lhs = (NonTerminal*)grammar[i]->rhs[j][0];
-                replaceFirstNonTerm(grammar[i], j, grammar[lhs->indexOfProd]);
-                j--;
-            }
-        }
+        // 计算该语法的所有的候选首符交集
+        QVector<QVector<int>> prodIntersect = calcuProdIntersect(grammar[i]);
+        // 若某产生式首字符为非终结符且有候选首符交集 则进行迭代替换直到候选首符均为终结符/空串
+        replaceFirstNonTerm(grammar[i], prodIntersect);
+
         // 合并该语法式中所有的相同产生式
         mergeSameProd(grammar[i]);
 
-        bool isFactored = false;
+        // 计算所有的候选首符交集 本次计算结果可以直接用于提取公因子
+        // 提公因子创建新的产生式 合并旧产生式内的同类项 合并空串等相同产生式
+        // 由于每次都会改变产生式集 所以需要多次调用交集求解函数 每次仅返回一个交集
         int factorCnt = 0;
-        // 计算所有的候选首符交集 提公因子创建新的产生式 合并旧产生式内的同类项
-        // 合并空串等相同产生式
-        while(!isFactored) {
-            QVector<int> prodIntersect = calcuProdIntersect(grammar[i]);
-            if(prodIntersect.size() <= 0)  {
-                isFactored = true;
-            } else {
-                factorCnt++;
-                createFactorProd(factorCnt++, grammar[i], prodIntersect);
-            }
+        prodIntersect = calcuProdIntersect(grammar[i], false);
+        while(!prodIntersect.isEmpty()) {
+            factorCnt++;
+            createFactorProd(factorCnt++, grammar[i], prodIntersect[0]);
+            prodIntersect = calcuProdIntersect(grammar[i], false);
         }
     }
 }
 
-void GrammarAnalyzer::replaceFirstNonTerm(Production *target, int index, Production *replace)
+void GrammarAnalyzer::replaceFirstNonTerm(Production *target, QVector<QVector<int>> & intersect)
 {
-    // 已经确保候选首符为需要替换的非终结符
-    QVector<Symbol*> src = target->rhs[index];
-    refArrayDec(src);
-    src.remove(0);
-    for(int i = 0; i < replace->rhs.size(); i++) {
-        QVector<Symbol*> temp = replace->rhs[i] + src;
-        refArrayInc(temp);
-        target->rhs.push_back(temp);
+    QVector<bool> visited(target->rhs.size(), false);
+    QSet<int> removeSet;
+    //若计算得到的含有公因子产生式首符为非终结符
+    // 反复替换直到终结符或空串表明达到了可以进行公因式提取的状态
+
+    for(int i = 0; i < intersect.size(); i++) {
+        for(int j = 0; j < intersect[i].size(); j++) {
+            int prodIndex = intersect[i][j];
+            if(visited[prodIndex]) {continue; }
+            else {
+                visited[prodIndex] = true;
+                if(target->rhs[prodIndex].size() <= 0) { continue; }
+                else if(target->rhs[prodIndex][0]->getType() == Symbol::Type::TERMINAL) {continue; }
+                else {
+                    removeSet.insert(prodIndex);
+                    QVector<QVector<Symbol*>> replaceArray = genPreFactorProd(target->rhs[prodIndex]);
+                    for(int i = 0; i < replaceArray.size(); i++) {
+                        refArrayInc(replaceArray[i]);
+                    }
+                    target->rhs += replaceArray;
+                }
+            }
+        }
     }
-    target->rhs.remove(index);
+
+    // 可以删除原有的产生式
+    QList<int> removeList = removeSet.values();
+    std::sort(removeList.begin(), removeList.end());
+    for(int i = removeList.size() - 1; i >= 0; i--) {
+        int removeIndex = removeList[i];
+        refArrayDec(target->rhs[removeIndex]);
+        target->rhs[removeIndex];
+    }
 }
 
 void GrammarAnalyzer::mergeSameProd(Production *target)
@@ -301,38 +358,83 @@ void GrammarAnalyzer::mergeSameProd(Production *target)
 }
 
 // 计算当前语法产生式的候选首集的交集对应右部的索引 直到最后一个被找出后返回空集
-QVector<int> GrammarAnalyzer::calcuProdIntersect(Production *target)
+QVector<QVector<int>> GrammarAnalyzer::calcuProdIntersect(Production *target, bool isGroup)
 {
+    // 利用多重 Map 求得拥有某一特定公共候选符的所有产生式索引
     QMultiMap<Symbol*, int> multiMap = QMultiMap<Symbol*, int>();
-    QVector<int> indexList;
+    QVector<QVector<int>> indexList;
     for(int i = 0; i < target->rhs.size(); i++) {
         QSet<Symbol*> temp = calcuFirst(target->rhs[i]);
-        if(temp.size() == 1) {
-            multiMap.insert(*(temp.begin()), i);
-        } else {
-            sendErrorMsg("计算错误");
-            return indexList;
+        for(QSet<Symbol*>::Iterator iter = temp.begin(); iter != temp.end(); iter++) {
+            multiMap.insert(*iter, i);
         }
     }
     QList<Symbol*> keyList = multiMap.uniqueKeys();
     for(int i = 0; i < keyList.size(); i++) {
-        indexList = multiMap.values(keyList[i]).toVector();
-        if(indexList.size() >= 2) {
-            std::sort(indexList.begin(), indexList.end());
-            return indexList;
+        QVector<int> temp = multiMap.values(keyList[i]).toVector();
+        // 确保是公有而非仅出现一次
+        if(temp.size() >= 2) {
+            std::sort(temp.begin(), temp.end());
+            indexList.push_back(temp);
+            if(!isGroup) { return indexList; }
         }
     }
-    indexList.clear();
     return indexList;
 }
 
-void GrammarAnalyzer::createFactorProd(int factorCnt, Production * prod, QVector<int> & intersect)
+int GrammarAnalyzer::maxIntersectLength(Production *target, QVector<int> &intersect)
 {
+    int factorLength = 0;
+    QVector<Symbol*> peekSymList = target->rhs[intersect[0]];
+
+    for(int i = 0; i < peekSymList.size(); i++) {
+        bool isSymbolSame = true;
+        for(int j = 1; j < intersect.size(); j++) {
+            if(i >= target->rhs[j].size() || peekSymList[i] != target->rhs[j][i])  {
+                isSymbolSame = false;
+                break;
+            }
+        }
+        if(!isSymbolSame) {
+            factorLength = i;
+            break;
+        }
+    }
+    return factorLength;
+}
+
+void GrammarAnalyzer::createFactorProd(int factorCnt, Production * target, QVector<int> & intersect)
+{
+    if(intersect.size() <= 1) {return;}
+    NonTerminal* newTerm = (NonTerminal*) new NonTerminal();
+    Production* newProd = (Production*) new Production();
+    if(newTerm == nullptr || newProd == nullptr) { return; };
+
     // 找出指定索引产生式中的最长公因子
+    int sameLength = maxIntersectLength(target, intersect);
+    QVector<Symbol*> factor(target->rhs[intersect[0]].mid(0, sameLength));
+    for(int i = 0; i < intersect.size() - 1; i++) {
+        refArrayDec(factor);
+    }
 
     // 创建新的产生式并加入语法集中
+    newTerm->setName(target->lhs->getName() + "." + factorCnt);
+    newTerm->refInc();
+    newProd->setLhs(newTerm);
+    for(int i = 0; i < intersect.size(); i++) {
+        QVector<Symbol*> temp = target->rhs[intersect[i]].mid(sameLength, -1);
+        newProd->rhs.push_back(temp);
+    }
+    newTerm->setIndexOfProd(grammar.size());
+    grammar.push_back(newProd);
 
     // 更改已经经过提公因子的原有产生式
+    factor.push_back(newTerm);
+    newTerm->refInc();
+    for(int i = intersect.size() - 1; i >= 0; i--) {
+        target->rhs.removeAt(intersect[i]);
+    }
+    target->rhs.push_back(factor);
 }
 
 QSet<Symbol*> GrammarAnalyzer::calcuFirst(Symbol *sym)
@@ -411,7 +513,7 @@ QSet<Symbol *> GrammarAnalyzer::calcuFirst(QVector<Symbol *> &symbolList)
 QSet<Symbol *> GrammarAnalyzer::calcuFollow(NonTerminal *nonTerm)
 {
     QSet<Symbol*> follow;
-    if(!nonTerm->follow.isEmpty()) { return nonTerm->follow; }
+    if(!(nonTerm->follow.isEmpty())) { return nonTerm->follow; }
     // 文法开始符号 添加 #
     if(nonTerm == startNonTerm) {
         follow.insert(endTerm);
@@ -445,6 +547,14 @@ QSet<Symbol *> GrammarAnalyzer::calcuFollow(NonTerminal *nonTerm)
     return follow;
 }
 
+QSet<Symbol *> GrammarAnalyzer::calcuSynch(NonTerminal *&nonTerm)
+{
+    if(nonTerm->synch.isEmpty()) {
+        nonTerm->synch = calcuFollow(nonTerm);
+    }
+    return nonTerm->synch;
+}
+
 void GrammarAnalyzer::clearSetCalcuResult()
 {
     for(int i = 0; i < grammar.size(); i++) {
@@ -452,6 +562,66 @@ void GrammarAnalyzer::clearSetCalcuResult()
         grammar[i]->lhs->follow.clear();
         grammar[i]->lhs->synch.clear();
     }
+}
+
+void GrammarAnalyzer::reScaleAnalyTable()
+{
+    if(termimals.size() <= 0 || nonTermimals.size() <= 0) { return; }
+    analyTable.resize(nonTermimals.size());
+    for(int i = 0; i < analyTable.size(); i++) {
+        analyTable[i].resize(termimals.size());
+        for(int j = 0; j < analyTable[i].size(); j++ ) {
+            analyTable[i][j].type = AnalyTableItem::Type::BLANK;
+            analyTable[i][j].prod = nullptr;
+        }
+    }
+}
+
+void GrammarAnalyzer::fillTableProd(Production *prod)
+{
+    for(int  i = 0; i < prod->rhs.size(); i++) {
+           QSet<Symbol *> first = calcuFirst(prod->rhs[i]);
+           QSet<Symbol *> follow = calcuFollow(prod->lhs);
+           // 若 epsilon 在 First  集中则对应 Follow  集中除 epsilon 的所有终结符置表项
+           for(QSet<Symbol*>::Iterator iter = follow.begin(); iter != follow.end(); iter++) {
+               if((*iter) != blankTerm) {
+                   if(first.contains(blankTerm)) {
+                       setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, prod);
+                   } else {
+                       setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::SYNCH);
+                   }
+               }
+           }
+
+           first.remove(blankTerm);
+           for(QSet<Symbol*>::Iterator iter = first.begin(); iter != first.end(); iter++) {
+               setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, prod);
+           }
+    }
+}
+
+bool GrammarAnalyzer::setAnalyTableItem(NonTerminal *lhs, Terminal *term, AnalyTableItem::Type type, Production *prod)
+{
+    int x = -1, y = -1;
+    getTableItemPos(lhs, term, x, y);
+    if(x < 0 || y < 0 || !analyTable[x][y].isBlank()) {
+        sendErrorMsg("分析表建立错误：表项不存在或入口冲突");
+        return false;
+    }
+    if(type == AnalyTableItem::Type::PROD && prod != nullptr) {
+        analyTable[x][y].type = type;
+        analyTable[x][y].prod = prod;
+    } else if(type == AnalyTableItem::Type::SYNCH) {
+        analyTable[x][y].type = type;
+        analyTable[x][y].prod = nullptr;
+    }
+    return true;
+}
+
+void GrammarAnalyzer::getTableItemPos(NonTerminal *lhs, Terminal *term, int &x, int &y)
+{
+    x = nonTermimals.indexOf(lhs);
+    y = termimals.indexOf(term);
 }
 
 void GrammarAnalyzer::establishLhsProdRelation()
@@ -482,6 +652,7 @@ void GrammarAnalyzer::freeUnusedSymbol(QVector<bool> & usedProd)
         if(usedProd[i] == false) {
             grammar[i]->getLhs()->refDec();
             if(grammar[i]->getLhs()->canDestroy()) {
+                grammar[i]->lhs = nullptr;
                 freeList.push_back(grammar[i]->getLhs());
             }
 
@@ -489,6 +660,7 @@ void GrammarAnalyzer::freeUnusedSymbol(QVector<bool> & usedProd)
                 for(int k = 0; k < grammar[i]->rhs[j].size(); k++) {
                     grammar[i]->rhs[j][k]->refDec();
                     if(grammar[i]->rhs[j][k]->canDestroy()) {
+                        grammar[i]->rhs[j][k] = nullptr;
                         freeList.push_back(grammar[i]->rhs[j][k]);
                     }
                 }
@@ -499,4 +671,27 @@ void GrammarAnalyzer::freeUnusedSymbol(QVector<bool> & usedProd)
     for(int i = 0; i < freeList.size(); i++) {
         delete freeList[i];
     }
+}
+
+QVector<QVector<Symbol *> > GrammarAnalyzer::genPreFactorProd(QVector<Symbol *> initProd)
+{
+    QVector<QVector<Symbol*> > replaceArray;
+    replaceArray.push_back(initProd);
+    // 反复迭代 将非终结符所有的可能均予以替换
+    for(int i = 0; i < replaceArray.size(); i++) {
+        QVector<Symbol*> remainVec = replaceArray[i];
+        if(remainVec.size() <= 0 ) { continue; }
+        else if (remainVec[0]->getType() == Symbol::Type::TERMINAL) { continue; }
+        else {
+            NonTerminal* nonTerm = (NonTerminal*)remainVec[0];
+            Production* srcProd = grammar[nonTerm->indexOfProd];
+            remainVec.removeFirst();
+            for(int j = 0; j < srcProd->rhs.size(); j++) {
+                replaceArray.push_back(srcProd->rhs[j] + remainVec);
+            }
+            replaceArray.removeAt(i);
+            i--;
+        }
+    }
+    return replaceArray;
 }

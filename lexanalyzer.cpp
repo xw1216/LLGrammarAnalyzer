@@ -301,8 +301,10 @@ void LexAnalyzer::sendSymbolMsg(QString &symbol)
 
 void LexAnalyzer::generateSymbolFlag(QString symbolStr, SymbolItem::Type type)
 {
+    QString termName = getMnemonicName(symbolStr, type);
+    sendSymbolMsg(termName);
     QString propName;
-    propName = "<" + getMnemonicName(symbolStr, type) + ", ";
+    propName = "<" + termName + ", ";
     switch (type) {
     case SymbolItem::Type::ID:
         propName = propName + QString::number(identifierList.size()) + ">"; break;
