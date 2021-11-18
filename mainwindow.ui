@@ -6,17 +6,315 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1080</width>
+    <height>720</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>MainWindow</string>
+  <property name="font">
+   <font>
+    <family>Microsoft YaHei UI</family>
+    <pointsize>11</pointsize>
+   </font>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
-  <widget class="QMenuBar" name="menubar"/>
-  <widget class="QStatusBar" name="statusbar"/>
+  <property name="windowTitle">
+   <string>语法分析器</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="res.qrc">
+    <normaloff>:/img/res/NLP.png</normaloff>:/img/res/NLP.png</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_8">
+    <item>
+     <widget class="QSplitter" name="centralHorizSplit">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="QGroupBox" name="SrcInputGroup">
+       <property name="font">
+        <font>
+         <family>Microsoft YaHei UI</family>
+         <pointsize>12</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="title">
+        <string>源码输入</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <layout class="QVBoxLayout" name="SrcInputVertiLay">
+          <item>
+           <layout class="QHBoxLayout" name="SrcInputBtnHorizLay">
+            <item>
+             <spacer name="SrcInputBtnSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="OpenSrcFileBtn">
+              <property name="font">
+               <font>
+                <family>Microsoft YaHei UI</family>
+                <pointsize>10</pointsize>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>打开文件</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="PreProcessBtn">
+              <property name="font">
+               <font>
+                <family>Microsoft YaHei UI</family>
+                <pointsize>10</pointsize>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>预处理</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPlainTextEdit" name="SrcTextEditor">
+            <property name="font">
+             <font>
+              <family>Consolas</family>
+              <pointsize>10</pointsize>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QSplitter" name="grammarVertiSplit">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="handleWidth">
+        <number>2</number>
+       </property>
+       <widget class="QWidget" name="">
+        <layout class="QVBoxLayout" name="GrammarToolVertiLay">
+         <item>
+          <widget class="QGroupBox" name="GrammarProcGroup">
+           <property name="font">
+            <font>
+             <family>Microsoft YaHei UI</family>
+             <pointsize>12</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="title">
+            <string>语法处理</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_3">
+            <item>
+             <layout class="QHBoxLayout" name="GrammarProcHorizLay">
+              <item>
+               <widget class="QPushButton" name="EstablishGrammarBtn">
+                <property name="font">
+                 <font>
+                  <family>Microsoft YaHei UI</family>
+                  <pointsize>10</pointsize>
+                  <weight>50</weight>
+                  <bold>false</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>建立语法</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="ViewGrammarBtn">
+                <property name="font">
+                 <font>
+                  <family>Microsoft YaHei UI</family>
+                  <pointsize>10</pointsize>
+                  <weight>50</weight>
+                  <bold>false</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>查看语法</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="GrammarAnalyGroup">
+           <property name="font">
+            <font>
+             <family>Microsoft YaHei UI</family>
+             <pointsize>12</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="title">
+            <string>语法分析</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <item>
+             <layout class="QHBoxLayout" name="GrammarAnalyHorizLay">
+              <item>
+               <widget class="QPushButton" name="AnalyStepBtn">
+                <property name="font">
+                 <font>
+                  <family>Microsoft YaHei UI</family>
+                  <pointsize>10</pointsize>
+                  <weight>50</weight>
+                  <bold>false</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>单步分析</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="AnalyAllBtn">
+                <property name="font">
+                 <font>
+                  <family>Microsoft YaHei UI</family>
+                  <pointsize>10</pointsize>
+                  <weight>50</weight>
+                  <bold>false</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>全部分析</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="ResetAnalyBtn">
+                <property name="font">
+                 <font>
+                  <family>Microsoft YaHei UI</family>
+                  <pointsize>10</pointsize>
+                  <weight>50</weight>
+                  <bold>false</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>重置</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="GrammarStatusGroup">
+        <property name="font">
+         <font>
+          <family>Microsoft YaHei UI</family>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="title">
+         <string>状态查看</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <item>
+          <layout class="QVBoxLayout" name="GrammarStatusVertiLay">
+           <item>
+            <layout class="QHBoxLayout" name="GrammarStatusBtnHorizLay">
+             <item>
+              <widget class="QPushButton" name="ViewAnalyTableBtn">
+               <property name="font">
+                <font>
+                 <family>Microsoft YaHei UI</family>
+                 <pointsize>10</pointsize>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>查看分析表</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="ViewAnalyStackBtn">
+               <property name="font">
+                <font>
+                 <family>Microsoft YaHei UI</family>
+                 <pointsize>10</pointsize>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>查看堆栈</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QTableWidget" name="ProcStatusTable"/>
+           </item>
+           <item>
+            <widget class="QLabel" name="WarningLabel">
+             <property name="font">
+              <font>
+               <family>Microsoft YaHei UI</family>
+               <pointsize>12</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>无异常信息。</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
  </widget>
- <resources/>
+ <resources>
+  <include location="res.qrc"/>
+ </resources>
  <connections/>
 </ui>

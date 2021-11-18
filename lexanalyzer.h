@@ -60,7 +60,7 @@ public:
      * @brief startPreProcess 调用预处理子程序
      * @return 子程序执行是否成功
      */
-    bool startPreProcess();
+//    bool startPreProcess();
 
     /**
      * @brief startLexAnalyze 开始全体词法分析
@@ -96,7 +96,7 @@ private:
     QString src;                                        // 存放输入源码
     QString scanBufferA;                        // 左扫描半区
     QString scanBufferB;                        // 右扫描半区
-    PreProcess * preServer = nullptr;   // 预处理器指针
+//    PreProcess * preServer = nullptr;   // 预处理器指针
     QString symbolMsg;                      // 单步处理返回的Token项
     QString symbolContent;
     QString errorMsg;                           // 错误提示信息

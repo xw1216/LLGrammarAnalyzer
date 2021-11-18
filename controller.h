@@ -8,16 +8,34 @@
 class Controller
 {
 public:
+    typedef  QVector<GrammarAnalyzer::OutMsg>::Iterator  MsgIter;
     Controller();
-    bool startProProcess(QString & in, QString & out);
+    ~Controller();
 
+    // 执行过程函数
+    bool startProProcess(QString & in);
+
+    bool initGrammarAnaly();
+
+    bool establishGrammar();
+
+    void resetGrammarAnaly();
+
+    // 语法分析全部执行
+    bool grammarAnalyAll();
+    MsgIter getAnalyMsgBegin();
+    MsgIter getAnalyMsgEnd();
+
+    // 语法分析单步执行
     int grammarAnalyStep();
+    GrammarAnalyzer::OutMsg getGrammarAnalyStepMsg();
 
-    // 获取单步语法分析展示内容
-    QString getAnalyStackText();
-    QString getLexInputType();
-    QString getLexInputText();
-    QString getActionText();
+     // 输出信息获取
+    QStringList getAnalyStack();
+    QStringList getGrammar();
+    QString getSrcCode();
+    QString getPreProcessErrMsg();
+    QString getGrammarAnalyErrMsg();
     QString getErrMsg();
 
 
@@ -25,19 +43,18 @@ public:
     void getAnalyTableSize(int & row, int & col);
     QString getAnalyTableColHeader(int col);
     QString getAnalyTableRowHeader(int row);
-    QString getAnalyTableItem(int & x, int & y);
+    QString getAnalyTableItem(int x, int y);
 
 private:
     PreProcess* preProcess = nullptr;
     LexAnalyzer* lexAnaly = nullptr;
     GrammarAnalyzer* grammarAnaly = nullptr;
 
-    QString errMsg();
+    QString srcCode;
+    QString errMsg;
 
-    void initComponents();
-    void engageSrcCode(QString & src);
-
-
+private:
+     void initCompiler();
 };
 
 #endif // CONTROLLER_H

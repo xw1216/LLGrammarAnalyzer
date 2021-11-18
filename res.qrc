@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>res/NLP.png</file>
+    </qresource>
+</RCC>

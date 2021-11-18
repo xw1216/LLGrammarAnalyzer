@@ -37,6 +37,10 @@ set(PROJECT_SOURCES
         grammaranalyzer.cpp
         controller.h
         controller.cpp
+        res.qrc
+        form.h
+        form.cpp
+        form.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

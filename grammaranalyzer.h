@@ -31,7 +31,7 @@ public:
     };
     class OutMsg {
     public:
-        QStringList stack;
+        QString stackTop;
         QString inputType;
         QString inputCont;
         QString action;
@@ -40,10 +40,11 @@ public:
 public:
     GrammarAnalyzer();
     ~GrammarAnalyzer();
+    void resetGrammarAnalyzer();
 
     void setLexAnalyzer(LexAnalyzer* lexPtr);
-    void initGrammarAnalyzer();
-    void parseGrammarFile();
+    bool initGrammarAnalyzer();
+    bool parseGrammarFile();
 
     void establishGrammar();
     void establishAnalyTable();
@@ -55,8 +56,15 @@ public:
     int grammarAnalyStep();
     void resetAnalyStatus();
 
+    QString getErrMsg();
     OutMsg getOutputMsg();
-    void resetGrammarAnalyzer();
+    QStringList printAnalyStack();
+    QStringList printGrammar();
+
+    void getAnalyTableSize(int & row, int & col);
+    QString getAnalyTableRowHeader(int row);
+    QString getAnalyTableColHeader(int col);
+    QString getAnalyTableItem(int row, int col);
 
     QVector<OutMsg> outMsgList;                                     // 全部对外输出信息
 
@@ -69,7 +77,9 @@ private:
     QVector<Symbol*> analyStack;                                      // 分析栈
     QVector<QVector<AnalyTableItem>> analyTable;         // 分析表
     bool isNeedNextInput = false;                                        // 获取词法单步结果的标识符
-    QString lexName, lexContent;                                        // 当前的
+    bool isEnd = false;
+    QString lexName, lexContent;                                        // 当前的词法输入
+
 
     QVector<Production*> grammar;                                  // 经过完全解析的语法产生式
     QVector<NonTerminal*> nonTermimals;                       // 所有出现过的非终结符（无重复）
@@ -133,7 +143,8 @@ private:
     Terminal *findTerminal(QString & termName);
     int getLexInput();
     QString printProduction(Production* prod);
-    QStringList printAnalyStack();
+    QString printStackTop();
+
 
 
     /*                  分析/出错信息                                */

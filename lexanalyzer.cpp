@@ -2,14 +2,14 @@
 
 LexAnalyzer::LexAnalyzer()
 {
-    preServer = new PreProcess();
+//    preServer = new PreProcess();
 }
 
 LexAnalyzer::~LexAnalyzer()
 {
-    if(preServer != nullptr) {
-        delete preServer;
-    }
+//    if(preServer != nullptr) {
+//        delete preServer;
+//    }
 }
 
 const QString &LexAnalyzer::getSrc() const
@@ -347,14 +347,14 @@ bool LexAnalyzer::isIdChar(QChar &character)
     return false;
 }
 
-bool LexAnalyzer::startPreProcess()
-{
-    if(!preServer->start(src)) {
-        errorMsg = preServer->getErrMsg();
-        return false;
-    }
-    return true;
-}
+//bool LexAnalyzer::startPreProcess()
+//{
+//    if(!preServer->start(src)) {
+//        errorMsg = preServer->getErrMsg();
+//        return false;
+//    }
+//    return true;
+//}
 
 bool LexAnalyzer::startLexAnalyze(QStringList::Iterator & symbolIter)
 {

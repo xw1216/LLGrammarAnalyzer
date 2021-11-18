@@ -33,37 +33,38 @@ void GrammarAnalyzer::setLexAnalyzer(LexAnalyzer *lexPtr)
     this->lex = lexPtr;
 }
 
-void GrammarAnalyzer::initGrammarAnalyzer()
+bool GrammarAnalyzer::initGrammarAnalyzer()
 {
     errMsg.clear();
     if(parser == nullptr)
     {
         sendErrorMsg("未能建立语法解析器");
-        return;
+        return false;
     }
 
     if(lex == nullptr) {
         sendErrorMsg("未连接词法分析器");
-        return;
+        return false;
     }
 
     if(!(parser->initParser())) {
         sendErrorMsg("无法打开语法描述文件");
-        return;
+        return false;
     }
-
+    return true;
 }
 
-void GrammarAnalyzer::parseGrammarFile()
+bool GrammarAnalyzer::parseGrammarFile()
 {
-    if(!(errMsg.isEmpty())) {return ;}
+    if(!(errMsg.isEmpty())) {return false;}
     parser->startParser();
     parser->getGrammar(grammar);
     if(grammar.size() <= 0) {
         sendErrorMsg("语法解析错误");
-        return;
+        return false;
     }
     startNonTerm = grammar[0]->getLhs();
+    return true;
 }
 
 void GrammarAnalyzer::establishGrammar()
@@ -104,6 +105,7 @@ void GrammarAnalyzer::resetGrammar()
 
 int GrammarAnalyzer::grammarAnalyStep()
 {
+    if(isEnd) {return 1; }
     int lexStatus = getLexInput();
 
     if(lexStatus < 0) {
@@ -112,6 +114,7 @@ int GrammarAnalyzer::grammarAnalyStep()
     } else if(lexStatus == 1) {
         lexName = "end";
         lexContent = "";
+        isEnd = true;
         return analyseHandler();
     } else {
         return analyseHandler();
@@ -122,8 +125,14 @@ void GrammarAnalyzer::resetAnalyStatus()
 {
     analyStack.clear();
     isNeedNextInput = false;
+    isEnd = false;
     outMsgList.clear();
     outMsg = OutMsg();
+}
+
+QString GrammarAnalyzer::getErrMsg()
+{
+    return errMsg;
 }
 
 GrammarAnalyzer::OutMsg GrammarAnalyzer::getOutputMsg()
@@ -133,7 +142,7 @@ GrammarAnalyzer::OutMsg GrammarAnalyzer::getOutputMsg()
 
 void GrammarAnalyzer::sendAnalyOutput(QString action)
 {
-    outMsg.stack = printAnalyStack();
+    outMsg.stackTop = printStackTop();
     outMsg.inputType = lexName;
     outMsg.inputCont = lexContent;
     outMsg.action = action;
@@ -143,6 +152,7 @@ void GrammarAnalyzer::sendAnalyOutput(QString action)
 void GrammarAnalyzer::resetGrammarAnalyzer()
 {
     if(parser) { parser->reset(); }
+    errMsg.clear();
     resetGrammar();
     resetAnalyTable();
     resetAnalyStatus();
@@ -696,13 +706,16 @@ void GrammarAnalyzer::resetAnalyTable()
 
 void GrammarAnalyzer::initAnalyStack()
 {
+    resetAnalyStatus();
     analyStack.push_back(endTerm);
     analyStack.push_back(startNonTerm);
     isNeedNextInput = true;
+    isEnd = false;
 }
 
 bool GrammarAnalyzer::grammarAnalyse()
 {
+    if(isEnd) {return true;}
     int lexStatus = 0;
     while(lexStatus == 0) {
         lexStatus = getLexInput();
@@ -712,10 +725,13 @@ bool GrammarAnalyzer::grammarAnalyse()
         } else if(lexStatus == 1) {
             lexName = "end";
             lexContent = "";
+            isEnd = true;
         }
 
         int analyStatus = analyseHandler();
-        if(analyStatus < 0) { return false; }
+        if(analyStatus < 0) {
+            return false;
+        }
         else if(analyStatus > 0) {
             return true;
         }
@@ -818,6 +834,15 @@ QString GrammarAnalyzer::printProduction(Production *prod)
     return prodStr;
 }
 
+QString GrammarAnalyzer::printStackTop()
+{
+    if(analyStack.last()->getType() == Symbol::Type::TERMINAL) {
+        return "$" + analyStack.last()->getName();
+    } else {
+        return analyStack.last()->getName();
+    }
+}
+
 QStringList GrammarAnalyzer::printAnalyStack()
 {
     QStringList strList;
@@ -829,6 +854,52 @@ QStringList GrammarAnalyzer::printAnalyStack()
         }
     }
     return strList;
+}
+
+QStringList GrammarAnalyzer::printGrammar()
+{
+    QStringList grammarList;
+    for(int i  = 0 ; i < grammar.size(); i++) {
+        grammarList.push_back(printProduction(grammar[i]));
+    }
+    return grammarList;
+}
+
+void GrammarAnalyzer::getAnalyTableSize(int &row, int &col)
+{
+    row = analyTable.size();
+    col = analyTable[0].size();
+}
+
+QString GrammarAnalyzer::getAnalyTableRowHeader(int row)
+{
+    if(row >= nonTermimals.size() || row < 0) {
+        return "";
+    }
+    return nonTermimals[row]->getName();
+}
+
+QString GrammarAnalyzer::getAnalyTableColHeader(int col)
+{
+    if(col >= termimals.size() || col < 0) {
+        return "";
+    }
+    return termimals[col]->getName();
+}
+
+QString GrammarAnalyzer::getAnalyTableItem(int row, int col)
+{
+    if(row >= nonTermimals.size() || row < 0 || col >= termimals.size() || col < 0) {
+        return "";
+    }
+    AnalyTableItem item = analyTable[row][col];
+    if(item.isBlank()) {
+        return "~";
+    } else if(item.isSynch()) {
+        return "Synch";
+    } else {
+        return printProduction(item.prod);
+    }
 }
 
 void GrammarAnalyzer::sendErrorMsg(QString errMsg)
