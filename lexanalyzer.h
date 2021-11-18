@@ -74,7 +74,7 @@ public:
      * @param symbol 带出检测出的Token
      * @return 是否执行成功或已经到达文件末尾
      */
-    int lexAnalyByStep(QString & symbol);
+    int lexAnalyByStep(QString & symbol, QString & content);
 
     // 获取相关列表的迭代器与表项数
 
@@ -98,6 +98,7 @@ private:
     QString scanBufferB;                        // 右扫描半区
     PreProcess * preServer = nullptr;   // 预处理器指针
     QString symbolMsg;                      // 单步处理返回的Token项
+    QString symbolContent;
     QString errorMsg;                           // 错误提示信息
 
     int lexBegin = 0;                               // 词法单元开始指针
@@ -236,7 +237,7 @@ private:
      * @brief sendSymbolMsg 发送单步分析结果
      * @param symbol 分析结果
      */
-    void sendSymbolMsg(QString & symbol);
+    void sendSymbolMsg(QString & symbol, QString & content);
     /**
      * @brief generateSymbolFlag 生成单步分析Token
      * @param symbolStr 词法单元内容

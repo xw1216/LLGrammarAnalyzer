@@ -29,6 +29,13 @@ public:
             return false;
         }
     };
+    class OutMsg {
+    public:
+        QStringList stack;
+        QString inputType;
+        QString inputCont;
+        QString action;
+    };
     enum class ActionType {PROD, REDUC, JUMP, SYNCH, ACC};
 public:
     GrammarAnalyzer();
@@ -41,10 +48,17 @@ public:
     void establishGrammar();
     void establishAnalyTable();
     void resetGrammar();
+    void resetAnalyTable();
 
-    bool grammarAnalyStep();
-    void analyStepOutput(QString & stack, QString & input, QString & action);
+    void initAnalyStack();
+    bool grammarAnalyse();
+    int grammarAnalyStep();
     void resetAnalyStatus();
+
+    OutMsg getOutputMsg();
+    void resetGrammarAnalyzer();
+
+    QVector<OutMsg> outMsgList;                                     // 全部对外输出信息
 
 private:
     LexAnalyzer* lex;                                                             // 词法分析器
@@ -54,12 +68,15 @@ private:
 
     QVector<Symbol*> analyStack;                                      // 分析栈
     QVector<QVector<AnalyTableItem>> analyTable;         // 分析表
+    bool isNeedNextInput = false;                                        // 获取词法单步结果的标识符
+    QString lexName, lexContent;                                        // 当前的
 
     QVector<Production*> grammar;                                  // 经过完全解析的语法产生式
     QVector<NonTerminal*> nonTermimals;                       // 所有出现过的非终结符（无重复）
     QVector<Terminal*> termimals;                                    // 所有出现过的终结符 （无重复）
     NonTerminal* startNonTerm;                                         // 文法开始非终结符
 
+    OutMsg outMsg;                                                          // 单步对外输出信息
     QString errMsg;                                                             // 错误信息
 
 private:
@@ -109,15 +126,19 @@ private:
     void getTableItemPos(NonTerminal* lhs, Terminal* term, int & x, int & y);
 
 
+
     /*                  分析过程与分析栈                        */
-    void initAnalyStack();
+
+    int analyseHandler();
+    Terminal *findTerminal(QString & termName);
+    int getLexInput();
     QString printProduction(Production* prod);
-    QString printStepAction(ActionType* type, Symbol* stackTop, Symbol* input, Production* prod);
-    QString printAnalyStack();
+    QStringList printAnalyStack();
 
 
-    /*                  错误信息                                */
+    /*                  分析/出错信息                                */
     void sendErrorMsg(QString errMsg);
+    void sendAnalyOutput(QString action);
 
 };
 

@@ -294,30 +294,34 @@ QString LexAnalyzer::getOperatorName(QString symbol)
     }
 }
 
-void LexAnalyzer::sendSymbolMsg(QString &symbol)
+void LexAnalyzer::sendSymbolMsg(QString &symbol, QString & content)
 {
     this->symbolMsg = symbol;
+    this->symbolContent = content;
 }
 
 void LexAnalyzer::generateSymbolFlag(QString symbolStr, SymbolItem::Type type)
 {
     QString termName = getMnemonicName(symbolStr, type);
-    sendSymbolMsg(termName);
+    QString termContent;
     QString propName;
     propName = "<" + termName + ", ";
     switch (type) {
     case SymbolItem::Type::ID:
         propName = propName + QString::number(identifierList.size()) + ">"; break;
+        termContent = identifierList.last().getValue();
     case SymbolItem::Type::INTEGER:
     case SymbolItem::Type::FLOAT:
     case SymbolItem::Type::STRING:
         propName = propName + QString::number(constantList.size()) + ">"; break;
+        termName = constantList.last().getValue();
     case SymbolItem::Type::KEYWORD:
         propName = propName + "->"; break;
     case SymbolItem::Type::OPERATOR:
         propName = propName + "->"; break;
         break;
     }
+    sendSymbolMsg(termName, termContent);
     symbolAnalyList.append(propName);
 }
 
@@ -367,16 +371,19 @@ bool LexAnalyzer::startLexAnalyze(QStringList::Iterator & symbolIter)
     return true;
 }
 
-int LexAnalyzer::lexAnalyByStep(QString &symbol)
+int LexAnalyzer::lexAnalyByStep(QString &symbol, QString & content)
 {
     bool isEnd = false;
     try {
         isEnd = !mainAnalyzer();
     }  catch (QString e) {
         errorMsg = e;
+        symbolMsg.clear();
+        symbolContent.clear();
         return -1;
     }
     symbol = symbolMsg;
+    content = symbolContent;
     return isEnd ? 0 : 1;
 }
 

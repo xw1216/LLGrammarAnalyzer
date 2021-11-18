@@ -45,6 +45,15 @@ void GrammarParser::startParser()
     }
 }
 
+void GrammarParser::reset()
+{
+    grammar.clear();
+    grammarMnimonic.clear();
+    grammar.clear();
+    nonTerms.clear();
+    terms.clear();
+}
+
 
 void GrammarParser::getGrammar(QVector<Production *> &grammar)
 {

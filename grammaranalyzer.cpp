@@ -11,6 +11,8 @@ GrammarAnalyzer::GrammarAnalyzer()
 
 GrammarAnalyzer::~GrammarAnalyzer()
 {
+    resetGrammar();
+    resetAnalyTable();
     if(parser != nullptr) {
         delete  parser;
         parser = nullptr;
@@ -24,6 +26,11 @@ GrammarAnalyzer::~GrammarAnalyzer()
         delete blankTerm;
         blankTerm = nullptr;
     }
+}
+
+void GrammarAnalyzer::setLexAnalyzer(LexAnalyzer *lexPtr)
+{
+    this->lex = lexPtr;
 }
 
 void GrammarAnalyzer::initGrammarAnalyzer()
@@ -86,15 +93,59 @@ void GrammarAnalyzer::resetGrammar()
     for(int i = 0; i < termimals.size(); i++) {
         delete  termimals[i];
     }
+    for(int i = 0; i < grammar.size(); i++) {
+        delete  grammar[i];
+    }
     nonTermimals.clear();
     termimals.clear();
     grammar.clear();
     startNonTerm = nullptr;
 }
 
-bool GrammarAnalyzer::grammarAnalyStep()
+int GrammarAnalyzer::grammarAnalyStep()
 {
+    int lexStatus = getLexInput();
 
+    if(lexStatus < 0) {
+        sendErrorMsg("词法分析器错误");
+        return -1;
+    } else if(lexStatus == 1) {
+        lexName = "end";
+        lexContent = "";
+        return analyseHandler();
+    } else {
+        return analyseHandler();
+    }
+}
+
+void GrammarAnalyzer::resetAnalyStatus()
+{
+    analyStack.clear();
+    isNeedNextInput = false;
+    outMsgList.clear();
+    outMsg = OutMsg();
+}
+
+GrammarAnalyzer::OutMsg GrammarAnalyzer::getOutputMsg()
+{
+    return outMsg;
+}
+
+void GrammarAnalyzer::sendAnalyOutput(QString action)
+{
+    outMsg.stack = printAnalyStack();
+    outMsg.inputType = lexName;
+    outMsg.inputCont = lexContent;
+    outMsg.action = action;
+    outMsgList.push_back(outMsg);
+}
+
+void GrammarAnalyzer::resetGrammarAnalyzer()
+{
+    if(parser) { parser->reset(); }
+    resetGrammar();
+    resetAnalyTable();
+    resetAnalyStatus();
 }
 
 void GrammarAnalyzer::removeLeftRecursion()
@@ -582,20 +633,23 @@ void GrammarAnalyzer::fillTableProd(Production *prod)
     for(int  i = 0; i < prod->rhs.size(); i++) {
            QSet<Symbol *> first = calcuFirst(prod->rhs[i]);
            QSet<Symbol *> follow = calcuFollow(prod->lhs);
-           // 若 epsilon 在 First  集中则对应 Follow  集中除 epsilon 的所有终结符置表项
+           bool isFirstContainsBlank = first.contains(blankTerm);
+           first.remove(blankTerm);
+           // 若 epsilon 在 First  集中 则对应 Follow集中除 epsilon 的所有终结符置表项
+           // 若 epsilon 不在 First  集中 则对应 Follow集中除 epsilon 的所有终结符置同步符号项
+           Production* singleProd = (Production*) new  Production();
+           singleProd->setLhs(prod->getLhs());
+           singleProd->rhs.push_back(prod->rhs[i]);
            for(QSet<Symbol*>::Iterator iter = follow.begin(); iter != follow.end(); iter++) {
-               if((*iter) != blankTerm) {
-                   if(first.contains(blankTerm)) {
-                       setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, prod);
-                   } else {
-                       setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::SYNCH);
-                   }
+               if(isFirstContainsBlank) {
+                   setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, singleProd);
+               } else {
+                   setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::SYNCH);
                }
            }
 
-           first.remove(blankTerm);
            for(QSet<Symbol*>::Iterator iter = first.begin(); iter != first.end(); iter++) {
-               setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, prod);
+               setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, singleProd);
            }
     }
 }
@@ -610,6 +664,9 @@ bool GrammarAnalyzer::setAnalyTableItem(NonTerminal *lhs, Terminal *term, AnalyT
     }
     if(type == AnalyTableItem::Type::PROD && prod != nullptr) {
         analyTable[x][y].type = type;
+        for(int i = 0 ; i < prod->rhs.size(); i++) {
+
+        }
         analyTable[x][y].prod = prod;
     } else if(type == AnalyTableItem::Type::SYNCH) {
         analyTable[x][y].type = type;
@@ -622,6 +679,161 @@ void GrammarAnalyzer::getTableItemPos(NonTerminal *lhs, Terminal *term, int &x, 
 {
     x = nonTermimals.indexOf(lhs);
     y = termimals.indexOf(term);
+}
+
+void GrammarAnalyzer::resetAnalyTable()
+{
+    for(int i = 0; i < analyTable.size(); i++) {
+        for(int j = 0; j < analyTable[i].size(); j++) {
+            if(analyTable[i][j].prod != nullptr) {
+                delete analyTable[i][j].prod;
+            }
+        }
+        analyTable[i].clear();
+    }
+    analyTable.clear();
+}
+
+void GrammarAnalyzer::initAnalyStack()
+{
+    analyStack.push_back(endTerm);
+    analyStack.push_back(startNonTerm);
+    isNeedNextInput = true;
+}
+
+bool GrammarAnalyzer::grammarAnalyse()
+{
+    int lexStatus = 0;
+    while(lexStatus == 0) {
+        lexStatus = getLexInput();
+        if(lexStatus < 0) {
+            sendErrorMsg("词法分析器错误");
+            return false;
+        } else if(lexStatus == 1) {
+            lexName = "end";
+            lexContent = "";
+        }
+
+        int analyStatus = analyseHandler();
+        if(analyStatus < 0) { return false; }
+        else if(analyStatus > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+int GrammarAnalyzer::analyseHandler()
+{
+    Terminal* term = findTerminal(lexName);
+    if(!term) { sendErrorMsg("语法不支持该符号"); return -1; }
+
+    // 栈顶为非终结符 遇到空则产生错误或跳过 遇到同步符号则弹出 遇到产生式则弹出并倒序压栈产生式右部
+    if(analyStack.back()->getType() == Symbol::Type::NONTERMINAL) {
+        NonTerminal* nonTerm = (NonTerminal*)analyStack.back();
+        int x = -1, y = -1;
+        getTableItemPos(nonTerm, term, x, y);
+        // 遇到空
+        if(analyTable[x][y].isBlank()) {
+//            sendErrorMsg("访问了错误的表项"); return -1;
+            sendAnalyOutput("访问了错误的表项，跳过输入符号" + lexName);
+            isNeedNextInput = true;
+        }
+        // 遇到同步符号
+        else if(analyTable[x][y].isSynch()) {
+            sendAnalyOutput("Synch 同步，弹出" + analyStack.back()->getName());
+            analyStack.pop_back();
+        }
+        // 弹出并倒序压栈产生式右部
+        else {
+            Production* prod = analyTable[x][y].prod;
+            sendAnalyOutput(printProduction(prod));
+            analyStack.pop_back();
+            for(int i = prod->rhs[0].size() - 1; i >= 0; i--) {
+                analyStack.push_back(prod->rhs[0][i]);
+            }
+        }
+    }
+    // 栈顶为终结符但不是 # end 符号 则弹出并获取新的输入符号
+    else if(analyStack.back()->getType() == Symbol::Type::TERMINAL
+              && analyStack.back()->getName() != "end") {
+            sendAnalyOutput("弹出" + analyStack.back()->getName() + " , 输入前进");
+            analyStack.pop_back();
+            isNeedNextInput = true;
+            return 0;
+    }
+    // 分析成功
+    else if (analyStack.back()->getName() == "end"){
+        sendAnalyOutput("语法分析成功");
+        return 1;
+    }
+    return -1;
+}
+
+Terminal *GrammarAnalyzer::findTerminal(QString &termName)
+{
+    for(int i = 0; i < termimals.size(); i++) {
+        if(termimals[i]->getName() == termName) {
+            return termimals[i];
+        }
+    }
+    return nullptr;
+}
+
+int GrammarAnalyzer::getLexInput()
+{
+    int lexStatus = 0;
+    if(isNeedNextInput) {
+        lexStatus = lex->lexAnalyByStep(lexName, lexContent);
+        if(!lexName.isEmpty()) {
+            lexName.remove(0,1);
+            isNeedNextInput = false;
+        }
+    }
+    return lexStatus;
+}
+
+QString GrammarAnalyzer::printProduction(Production *prod)
+{
+    QString prodStr;
+    prodStr.push_back(prod->lhs->getName());
+    prodStr.push_back(" -> ");
+    for(int i = 0 ; i < prod->rhs.size(); i++) {
+        if(prod->rhs[i].size() <= 0) {
+            prodStr.push_back("$blank");
+        } else {
+            for(int j = 0; j < prod->rhs[i].size(); j++) {
+                if(prod->rhs[i][j]->getType() == Symbol::Type::TERMINAL) {
+                    prodStr.push_back(" $" + prod->rhs[i][j]->getName() + " ");
+                } else {
+                    prodStr.push_back(" " + prod->rhs[i][j]->getName() + " ");
+                }
+            }
+        }
+        if(i != prod->rhs.size() - 1) {
+            prodStr.push_back(" | ");
+        }
+    }
+    return prodStr;
+}
+
+QStringList GrammarAnalyzer::printAnalyStack()
+{
+    QStringList strList;
+    for(int i = 0 ; i < analyStack.size(); i++) {
+        if(analyStack[i]->getType() == Symbol::Type::TERMINAL) {
+            strList.push_back("$" + analyStack[i]->getName());
+        } else {
+            strList.push_back(analyStack[i]->getName());
+        }
+    }
+    return strList;
+}
+
+void GrammarAnalyzer::sendErrorMsg(QString errMsg)
+{
+    this->errMsg = errMsg;
 }
 
 void GrammarAnalyzer::establishLhsProdRelation()

@@ -25,7 +25,7 @@ public:
      */
     void startParser();
 
-    void clear();
+    void reset();
 
     void getGrammar(QVector<Production*> & grammar);
 
