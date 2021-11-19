@@ -61,6 +61,8 @@ void MainWindow::on_EstablishGrammarBtn_clicked()
         tipWindow("建立语法出错", util.getGrammarAnalyErrMsg());
     } else {
         ui->ViewGrammarBtn->setEnabled(true);
+        ui->ViewGrammarBtn->setEnabled(true);
+        sendMsg("语法建立成功");
     }
     if(isLexReady) {
         toggleBtns(true);
@@ -84,10 +86,13 @@ void MainWindow::on_AnalyStepBtn_clicked()
         sendMsg("分析成功");
         ui->AnalyStepBtn->setEnabled(false);
         ui->AnalyAllBtn->setEnabled(false);
+    } else {
+        analyStepCnt++;
+        sendMsg("单步分析， 第" + QString::number(analyStepCnt)  + "步。");
     }
     GrammarAnalyzer::OutMsg outMsg = util.getGrammarAnalyStepMsg();
     pushMsgTableItem(outMsg);
-    analyStepCnt++;
+
 }
 
 
@@ -144,11 +149,12 @@ void MainWindow::initUI()
     ui->grammarVertiSplit->setStretchFactor(0, 2);
     ui->grammarVertiSplit->setStretchFactor(1, 5);
     toggleBtns(false);
+    ui->ViewGrammarBtn->setEnabled(false);
 }
 
 void MainWindow::initUtil()
 {
-
+    setProcTableHeader();
 }
 
 QString MainWindow::getOpenFileCont(QWidget* parent)
@@ -174,16 +180,16 @@ QString MainWindow::getOpenFileCont(QWidget* parent)
 void MainWindow::resetGrammarAnalyStatus()
 {
     analyStepCnt = 0;
-    ui->ViewAnalyStackBtn->setEnabled(false);
+//    ui->ViewAnalyStackBtn->setEnabled(false);
     util.resetGrammarAnalyStatus();
     resetProcTable();
 }
 
 void MainWindow::resetProcTable()
 {
-    ui->ProcStatusTable->clear();
+    ui->ProcStatusTable->clearContents();
     ui->ProcStatusTable->setRowCount(0);
-    ui->ProcStatusTable->setColumnCount(0);
+//    ui->ProcStatusTable->setColumnCount(0);
 }
 
 void MainWindow::toggleBtns(bool enable)
@@ -191,8 +197,8 @@ void MainWindow::toggleBtns(bool enable)
     ui->AnalyStepBtn->setEnabled(enable);
     ui->AnalyAllBtn->setEnabled(enable);
     ui->ResetAnalyBtn->setEnabled(enable);
-    ui->ViewGrammarBtn->setEnabled(enable);
-//    ui->ViewAnalyStackBtn->setEnabled(enable);
+//    ui->ViewGrammarBtn->setEnabled(enable);
+    ui->ViewAnalyStackBtn->setEnabled(enable);
     ui->ViewAnalyTableBtn->setEnabled(enable);
 }
 
@@ -225,10 +231,10 @@ void MainWindow::setProcTableHeader()
     insertTableHeader("输入符号", 1);
     insertTableHeader("输入内容", 2);
     insertTableHeader("执行动作", 3);
-    ui->ProcStatusTable->setColumnWidth(0, 25);
-    ui->ProcStatusTable->setColumnWidth(1, 25);
-    ui->ProcStatusTable->setColumnWidth(2, 50);
-    ui->ProcStatusTable->setColumnWidth(3, 100);
+    ui->ProcStatusTable->setColumnWidth(0, 100);
+    ui->ProcStatusTable->setColumnWidth(1, 100);
+    ui->ProcStatusTable->setColumnWidth(2, 150);
+    ui->ProcStatusTable->setColumnWidth(3, 150);
 }
 
 void MainWindow::insertTableHeader(QString title, int index)
@@ -258,7 +264,10 @@ void MainWindow::pushMsgTableItem(GrammarAnalyzer::OutMsg &outMsg)
 void MainWindow::on_ResetGrammarBtn_clicked()
 {
     toggleBtns(false);
-    util.resetGrammar();
+    ui->ViewGrammarBtn->setEnabled(false);
+    ui->EstablishGrammarBtn->setEnabled(false);
     isGrammarReady = false;
+    util.resetGrammar();
+    resetGrammarAnalyStatus();
 }
 

@@ -37,7 +37,11 @@ private:
     void engageAnalyTable();
     void engageAnalyStack();
 
-    void setTableScale(int coloum, int row);
+    void setTableScale(int row, int col);
+    void resetTable();
+
+    void insertTableHeader(QString title, int index, bool isHoriz = true);
+    void insertTableItem(int row, int col, QString cont);
 
 };
 

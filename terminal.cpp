@@ -8,7 +8,7 @@ const QStringList Terminal::terminalList = {
 
         "assign", "plus", "sub", "mul", "div", "mod", "eq",
         "gre", "geq", "les", "leq", "neq", "and", "or", "not",
-        "smc", "cma", "lapr", "rpar","lbrc", "rbrc", "lsbrc",
+        "smc", "cma", "lpar", "rpar","lbrc", "rbrc", "lsbrc",
         "rsbrc","colon"
     };
 

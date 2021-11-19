@@ -17,9 +17,10 @@ bool GrammarParser::initParser()
 
 bool GrammarParser::readGrammarFile()
 {
-    QDir dir = QDir(QDir::currentPath()).filePath("grammar.txt");
-    if(!dir.exists()) {return false; }
-     QFile file(dir.canonicalPath());
+//    QDir dir = QDir(QDir::currentPath()).filePath("grammar.txt");
+//    QDir dir = QDir("../grammar.txt");
+//    if(!dir.exists()) {return false; }
+     QFile file("../grammar.txt");
     if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) { return false; }
     QTextStream stream(&file);
     stream.setAutoDetectUnicode(true);
@@ -31,17 +32,22 @@ bool GrammarParser::readGrammarFile()
 void GrammarParser::removeStrCR()
 {
     grammarStr.remove(QChar('\r'));
+    grammarStr = grammarStr.trimmed();
 }
 
 void GrammarParser::resolveGrammarMnimonic()
 {
     grammarMnimonic = grammarStr.split(QChar('\n'), Qt::SkipEmptyParts);
+    for(int i = 0; i < grammarMnimonic.size(); i++) {
+        grammarMnimonic[i] = grammarMnimonic[i].trimmed();
+    }
 }
 
 void GrammarParser::startParser()
 {
     for(int i = 0; i < grammarMnimonic.size(); i++) {
-        resolveProduction(grammarMnimonic[i]);
+        QString str = grammarMnimonic.at(i);
+        resolveProduction(str);
     }
 }
 
@@ -72,20 +78,22 @@ void GrammarParser::resolveProduction(QString &single)
     bool isRHS = false;
 
     for(int i = 0; i < phrases.size(); i++) {
-        if(phrases[i].size() <= 0) {continue;}
-        if(phrases[i].at(0) == QChar('@')) {
+        QString str = phrases.at(i);
+        if(str.size() <= 0) {continue;}
+        if(str.at(0) == QChar('@')) {
             isRHS  = true;
-        } else if (phrases[i].at(0) == QChar('|')) {
             prod->newProduction();
-        } else if(phrases[i].at(0) == QChar('$')) {
-            terminalHandler(prod, phrases[i]);
+        } else if (str.at(0) == QChar('|')) {
+            prod->newProduction();
+        } else if(str.at(0) == QChar('$')) {
+            terminalHandler(prod, str);
         } else {
-            if(isRHS) { nonTerminalHandler(prod, phrases[i], isRHS); }
+            if(isRHS) {  nonTerminalHandler(prod, str, isRHS); }
             else {
-                indexProd = findSameProduction(phrases[i]);
+                indexProd = findSameProduction(str);
                 if(indexProd == -1) {
                     indexProd = grammar.size();
-                    nonTerminalHandler(prod, phrases[i], isRHS, indexProd);
+                    nonTerminalHandler(prod, str, isRHS, indexProd);
                 } else {
                     delete prod;
                     prod = grammar[indexProd];

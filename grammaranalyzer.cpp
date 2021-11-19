@@ -5,8 +5,10 @@ GrammarAnalyzer::GrammarAnalyzer()
     parser = new GrammarParser();
     endTerm = new Terminal();
     endTerm->setName("end");
+    endTerm->refInc();
     blankTerm = new Terminal();
     blankTerm->setName("");
+    blankTerm->refInc();
 }
 
 GrammarAnalyzer::~GrammarAnalyzer()
@@ -18,13 +20,14 @@ GrammarAnalyzer::~GrammarAnalyzer()
         parser = nullptr;
     }
     lex = nullptr;
-    if(endTerm != nullptr) {
-        delete  endTerm;
-        endTerm = nullptr;
-    }
     if(blankTerm != nullptr) {
         delete blankTerm;
         blankTerm = nullptr;
+    }
+
+    if(endTerm != nullptr) {
+        delete  endTerm;
+        endTerm = nullptr;
     }
 }
 
@@ -69,7 +72,7 @@ bool GrammarAnalyzer::parseGrammarFile()
 
 void GrammarAnalyzer::establishGrammar()
 {
-    resetGrammar();
+//    resetGrammar();
     removeLeftRecursion();
     factoringProduction();
     recordSymbols();
@@ -92,6 +95,9 @@ void GrammarAnalyzer::resetGrammar()
         delete nonTermimals[i];
     }
     for(int i = 0; i < termimals.size(); i++) {
+        if(termimals[i] == endTerm || termimals[i] == blankTerm) {
+            continue;
+        }
         delete  termimals[i];
     }
     for(int i = 0; i < grammar.size(); i++) {
@@ -162,7 +168,7 @@ void GrammarAnalyzer::removeLeftRecursion()
 {
     int grammarNum = grammar.size();
     for(int i = 0; i < grammarNum; i++) {
-         for( int j = 0; j < i - 1; j++) {
+         for( int j = 0; j < i ; j++) {
              Production* target = grammar[i];
              Production* replace = grammar[j];
              replaceIndirectLeftRecursion(target, replace);
