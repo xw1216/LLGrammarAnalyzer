@@ -61,9 +61,14 @@ bool Controller::establishGrammar()
     return true;
 }
 
-void Controller::resetGrammarAnaly()
+void Controller::resetGrammar()
 {
     grammarAnaly->resetGrammarAnalyzer();
+}
+
+void Controller::resetGrammarAnalyStatus()
+{
+    grammarAnaly->initAnalyStack();
 }
 
 bool Controller::grammarAnalyAll()

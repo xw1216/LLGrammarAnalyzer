@@ -32,19 +32,30 @@ private slots:
     void on_ViewAnalyStackBtn_clicked();
     void on_SrcTextEditor_textChanged();
 
+    void on_ResetGrammarBtn_clicked();
+
 private:
     Ui::MainWindow *ui;
     Controller util;
     bool isLexReady = false;
+    bool isGrammarReady = false;
+    int analyStepCnt = 0;
 
 private:
     void initUI();
     void initUtil();
     QString getOpenFileCont(QWidget* parent);
+    void resetGrammarAnalyStatus();
+    void resetProcTable();
 
     void toggleBtns(bool enable);
     void sendMsg(QString msg);
     void tipWindow(QString title, QString content);
     void tableWindow(Form::ShowMode mode);
+
+    void setProcTableHeader();
+    void insertTableHeader(QString title, int index);
+    void insertTableItem(int row, int col, QString cont);
+    void pushMsgTableItem(GrammarAnalyzer::OutMsg & outMsg);
 };
 #endif // MAINWINDOW_H

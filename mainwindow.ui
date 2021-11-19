@@ -115,7 +115,7 @@
        <property name="handleWidth">
         <number>2</number>
        </property>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <layout class="QVBoxLayout" name="GrammarToolVertiLay">
          <item>
           <widget class="QGroupBox" name="GrammarProcGroup">
@@ -160,6 +160,21 @@
                 </property>
                 <property name="text">
                  <string>查看语法</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="ResetGrammarBtn">
+                <property name="font">
+                 <font>
+                  <family>Microsoft YaHei UI</family>
+                  <pointsize>10</pointsize>
+                  <weight>50</weight>
+                  <bold>false</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>重置语法</string>
                 </property>
                </widget>
               </item>
@@ -225,7 +240,7 @@
                  </font>
                 </property>
                 <property name="text">
-                 <string>重置</string>
+                 <string>重置分析</string>
                 </property>
                </widget>
               </item>

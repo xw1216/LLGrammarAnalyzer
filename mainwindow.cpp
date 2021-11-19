@@ -44,7 +44,7 @@ void MainWindow::on_PreProcessBtn_clicked()
     isLexReady = true;
 
     // 如果语法已经建立完毕 解禁后续按钮
-    if(ui->ViewGrammarBtn->isEnabled()) {
+    if(isGrammarReady) {
         toggleBtns(true);
     }
 }
@@ -76,20 +76,44 @@ void MainWindow::on_ViewGrammarBtn_clicked()
 
 void MainWindow::on_AnalyStepBtn_clicked()
 {
-
+    int analyStatus = util.grammarAnalyStep();
+    if(analyStatus < 0) {
+        sendMsg(util.getGrammarAnalyErrMsg());
+        return;
+    } else if (analyStatus == 1) {
+        sendMsg("分析成功");
+        ui->AnalyStepBtn->setEnabled(false);
+        ui->AnalyAllBtn->setEnabled(false);
+    }
+    GrammarAnalyzer::OutMsg outMsg = util.getGrammarAnalyStepMsg();
+    pushMsgTableItem(outMsg);
+    analyStepCnt++;
 }
 
 
 void MainWindow::on_AnalyAllBtn_clicked()
 {
-
+    bool analyStatus = util.grammarAnalyAll();
+    if(!analyStatus) {
+        sendMsg(util.getErrMsg());
+        return;
+    } else {
+        sendMsg("分析成功");
+        ui->AnalyStepBtn->setEnabled(false);
+        ui->AnalyAllBtn->setEnabled(false);
+        Controller::MsgIter msgsIter = util.getAnalyMsgBegin();
+        Controller::MsgIter msgsEnd = util.getAnalyMsgEnd();
+        for(int i = 0; msgsIter != msgsEnd; msgsIter++) {
+            if(i < analyStepCnt) {continue; }
+            pushMsgTableItem(*msgsIter);
+        }
+    }
 }
 
 
 void MainWindow::on_ResetAnalyBtn_clicked()
 {
-    toggleBtns(false);
-    util.resetGrammarAnaly();
+    resetGrammarAnalyStatus();
 }
 
 
@@ -109,6 +133,8 @@ void MainWindow::on_SrcTextEditor_textChanged()
 {
     toggleBtns(false);
     isLexReady = false;
+    resetGrammarAnalyStatus();
+
 }
 
 void MainWindow::initUI()
@@ -145,13 +171,28 @@ QString MainWindow::getOpenFileCont(QWidget* parent)
     return text;
 }
 
+void MainWindow::resetGrammarAnalyStatus()
+{
+    analyStepCnt = 0;
+    ui->ViewAnalyStackBtn->setEnabled(false);
+    util.resetGrammarAnalyStatus();
+    resetProcTable();
+}
+
+void MainWindow::resetProcTable()
+{
+    ui->ProcStatusTable->clear();
+    ui->ProcStatusTable->setRowCount(0);
+    ui->ProcStatusTable->setColumnCount(0);
+}
+
 void MainWindow::toggleBtns(bool enable)
 {
     ui->AnalyStepBtn->setEnabled(enable);
     ui->AnalyAllBtn->setEnabled(enable);
     ui->ResetAnalyBtn->setEnabled(enable);
     ui->ViewGrammarBtn->setEnabled(enable);
-    ui->ViewAnalyStackBtn->setEnabled(enable);
+//    ui->ViewAnalyStackBtn->setEnabled(enable);
     ui->ViewAnalyTableBtn->setEnabled(enable);
 }
 
@@ -175,5 +216,49 @@ void MainWindow::tableWindow(Form::ShowMode mode)
     form->setWindowFlag(Qt::Window, true);
     form->setVisible(true);
     form->show();
+}
+
+void MainWindow::setProcTableHeader()
+{
+    ui->ProcStatusTable->setColumnCount(4);
+    insertTableHeader("栈顶符号", 0);
+    insertTableHeader("输入符号", 1);
+    insertTableHeader("输入内容", 2);
+    insertTableHeader("执行动作", 3);
+    ui->ProcStatusTable->setColumnWidth(0, 25);
+    ui->ProcStatusTable->setColumnWidth(1, 25);
+    ui->ProcStatusTable->setColumnWidth(2, 50);
+    ui->ProcStatusTable->setColumnWidth(3, 100);
+}
+
+void MainWindow::insertTableHeader(QString title, int index)
+{
+    QTableWidgetItem *item = (QTableWidgetItem *) new QTableWidgetItem(title);
+    Form::setHeaderFontPlat(item);
+    ui->ProcStatusTable->setHorizontalHeaderItem(index, item);
+}
+
+void MainWindow::insertTableItem(int row, int col, QString cont) {
+    QTableWidgetItem *item = (QTableWidgetItem *) new QTableWidgetItem(cont);
+    Form::setFontPlat(item, 9, false);
+    ui->ProcStatusTable->setItem(row, col, item);
+}
+
+void MainWindow::pushMsgTableItem(GrammarAnalyzer::OutMsg &outMsg)
+{
+    int targetRow = ui->ProcStatusTable->rowCount();
+    ui->ProcStatusTable->setRowCount(targetRow + 1);
+    insertTableItem(targetRow, 0, outMsg.stackTop);
+    insertTableItem(targetRow, 1, outMsg.inputType);
+    insertTableItem(targetRow, 2, outMsg.inputCont);
+    insertTableItem(targetRow, 3, outMsg.action);
+}
+
+
+void MainWindow::on_ResetGrammarBtn_clicked()
+{
+    toggleBtns(false);
+    util.resetGrammar();
+    isGrammarReady = false;
 }
 

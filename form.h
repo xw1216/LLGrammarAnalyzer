@@ -25,6 +25,8 @@ public:
 
     void init();
 
+    static void setFontPlat(QTableWidgetItem *item, int size, bool isBold);
+    static void setHeaderFontPlat(QTableWidgetItem *item);
 
 private:
     Ui::Form *ui;
@@ -34,6 +36,8 @@ private:
     void engageGrammar();
     void engageAnalyTable();
     void engageAnalyStack();
+
+    void setTableScale(int coloum, int row);
 
 };
 

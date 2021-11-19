@@ -19,7 +19,10 @@ public:
 
     bool establishGrammar();
 
-    void resetGrammarAnaly();
+    void resetGrammar();
+
+    void resetGrammarAnalyStatus();
+
 
     // 语法分析全部执行
     bool grammarAnalyAll();
