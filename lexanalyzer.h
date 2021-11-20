@@ -116,13 +116,13 @@ private:
 
 private:
     const int BufferLength = 128;           // 扫描缓冲区长度
-    const int keywordNum = 20;            // 关键词数量
+    const int keywordNum = 21;            // 关键词数量
 
     QStringList keywordList = {
         "void", "int", "long", "float", "double",
         "bool", "string", "if", "elif", "else", "return",
         "while", "for", "break", "continue", "switch",
-        "case", "default", "true", "false"
+        "case", "default", "true", "false", "null"
     };
 
     QStringList operatorList = {

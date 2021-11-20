@@ -52,3 +52,21 @@ bool Production::isSharedPrefix()
     }
     return false;
 }
+
+void Production::refInc()
+{
+    refCnt++;
+}
+
+void Production::refDec()
+{
+    refCnt--;
+}
+
+bool Production::canDestroy()
+{
+    if(refCnt == 0) {
+        return true;
+    }
+    return false;
+}

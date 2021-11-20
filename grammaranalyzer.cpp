@@ -149,8 +149,8 @@ GrammarAnalyzer::OutMsg GrammarAnalyzer::getOutputMsg()
 void GrammarAnalyzer::sendAnalyOutput(QString action)
 {
     outMsg.stackTop = printStackTop();
-    outMsg.inputType = lexName;
-    outMsg.inputCont = lexContent;
+    outMsg.inputType = Terminal::isRecognized(lexName)? "$" + lexName : lexName;
+    outMsg.inputCont = lexContent.isEmpty() ? "~" : lexContent;
     outMsg.action = action;
     outMsgList.push_back(outMsg);
 }
@@ -272,16 +272,20 @@ void GrammarAnalyzer::markUsedSymbol(QVector<bool> & usedProd)
 {
     QVector<NonTerminal*> bfsQeuee;
     bfsQeuee.push_back(startNonTerm);
+    usedProd[0] = true;
     while(!(bfsQeuee.isEmpty())) {
         NonTerminal* nonTermTemp = bfsQeuee.front();
         bfsQeuee.pop_front();
         int indexOfProd = nonTermTemp->getIndexOfProd();
-        usedProd[indexOfProd] = true;
         for(int i = 0; i < grammar[indexOfProd]->rhs.size(); i++) {
             for(int j = 0; j < grammar[indexOfProd]->rhs[i].size(); j++) {
                 if(grammar[indexOfProd]->rhs[i][j]->getType() == Symbol::Type::NONTERMINAL) {
-                    if(!usedProd[((NonTerminal*)(grammar[indexOfProd]->rhs[i][j]))->getIndexOfProd()])
-                    { bfsQeuee.push_back((NonTerminal*)grammar[indexOfProd]->rhs[i][j]); }
+                    NonTerminal* tempNonTerm = (NonTerminal*)grammar[indexOfProd]->rhs[i][j];
+                    if(!usedProd[tempNonTerm->getIndexOfProd()])
+                    {
+                        usedProd[tempNonTerm->getIndexOfProd()] = true;
+                        bfsQeuee.push_back(tempNonTerm);
+                    }
                 }
             }
         }
@@ -341,22 +345,25 @@ void GrammarAnalyzer::factoringProduction()
     // 注意：注意语法式数量变化以及 first follow 集的更新
     for(int i = 0; i < grammar.size(); i++) {
         // 计算该语法的所有的候选首符交集
-        QVector<QVector<int>> prodIntersect = calcuProdIntersect(grammar[i]);
+        Production* prod = grammar[i];
+        QVector<QVector<int>> prodIntersect = calcuProdIntersect(prod);
+        // 无交集 无需提取公因子
+        if(prodIntersect.size() <= 0) { continue; }
         // 若某产生式首字符为非终结符且有候选首符交集 则进行迭代替换直到候选首符均为终结符/空串
-        replaceFirstNonTerm(grammar[i], prodIntersect);
+        replaceFirstNonTerm(prod, prodIntersect);
 
         // 合并该语法式中所有的相同产生式
-        mergeSameProd(grammar[i]);
+        mergeSameProd(prod);
 
         // 计算所有的候选首符交集 本次计算结果可以直接用于提取公因子
         // 提公因子创建新的产生式 合并旧产生式内的同类项 合并空串等相同产生式
         // 由于每次都会改变产生式集 所以需要多次调用交集求解函数 每次仅返回一个交集
         int factorCnt = 0;
-        prodIntersect = calcuProdIntersect(grammar[i], false);
+        prodIntersect = calcuProdIntersect(prod, false);
         while(!prodIntersect.isEmpty()) {
             factorCnt++;
-            createFactorProd(factorCnt++, grammar[i], prodIntersect[0]);
-            prodIntersect = calcuProdIntersect(grammar[i], false);
+            createFactorProd(factorCnt++, prod, prodIntersect[0]);
+            prodIntersect = calcuProdIntersect(prod, false);
         }
     }
 }
@@ -462,9 +469,8 @@ int GrammarAnalyzer::maxIntersectLength(Production *target, QVector<int> &inters
                 break;
             }
         }
-        if(!isSymbolSame) {
-            factorLength = i;
-            break;
+        if(isSymbolSame) {
+            factorLength = i + 1;
         }
     }
     return factorLength;
@@ -485,7 +491,7 @@ void GrammarAnalyzer::createFactorProd(int factorCnt, Production * target, QVect
     }
 
     // 创建新的产生式并加入语法集中
-    newTerm->setName(target->lhs->getName() + "." + factorCnt);
+    newTerm->setName(target->lhs->getName() + "." + QString::number(factorCnt));
     newTerm->refInc();
     newProd->setLhs(newTerm);
     for(int i = 0; i < intersect.size(); i++) {
@@ -544,9 +550,9 @@ QSet<Symbol*> GrammarAnalyzer::calcuFirst(Symbol *sym)
                      }
                  }
             }
-            nonTerm->first = first;
         }
     }
+    nonTerm->first = first;
     return first;
 }
 
@@ -577,6 +583,7 @@ QSet<Symbol *> GrammarAnalyzer::calcuFirst(QVector<Symbol *> &symbolList)
     return first;
 }
 
+// 可能出现无限右递归的情况 需要
 QSet<Symbol *> GrammarAnalyzer::calcuFollow(NonTerminal *nonTerm)
 {
     QSet<Symbol*> follow;
@@ -589,9 +596,9 @@ QSet<Symbol *> GrammarAnalyzer::calcuFollow(NonTerminal *nonTerm)
     for(int i = 0; i < grammar.size(); i++) {
         for(int j = 0; j < grammar[i]->rhs.size(); j++) {
             QVector<Symbol*>::Iterator iter = grammar[i]->rhs[j].begin();
-            for(int k = 0 ; grammar[i]->rhs[j].size(); k++, iter++) {
+            for(int k = 0 ; k < grammar[i]->rhs[j].size(); k++, iter++) {
                 if(nonTerm == grammar[i]->rhs[j][k]) {
-                    // 目标非终结符为产生式的最后一个符号 时 直接添加 FOLLOW(B)
+                    // 目标非终结符为产生式的最后一个符号 且不右递归时 直接添加 FOLLOW(B)
                     if(k ==  grammar[i]->rhs[j].size() - 1 && grammar[i]->rhs[j][k] != grammar[i]->lhs ) {
                         follow.unite(calcuFollow(grammar[i]->lhs));
                         continue;
@@ -599,7 +606,7 @@ QSet<Symbol *> GrammarAnalyzer::calcuFollow(NonTerminal *nonTerm)
                     // 目标非终结符为其他位置的符号时 计算 First(beta)
                     QVector<Symbol*> temp(iter + 1, grammar[i]->rhs[j].end());
                     QSet<Symbol*> subFirst = calcuFirst(temp);
-                    // 如果First(beta)含空即 beta 能多步推出空串 则额外添加 FOLLOW(B)
+                    // 如果First(beta)含空即 beta 能多步推出空串 且不右递归 则额外添加 FOLLOW(B)
                     if(subFirst.contains(blankTerm) && grammar[i]->rhs[j][k] != grammar[i]->lhs) {
                         follow.unite(calcuFollow(grammar[i]->lhs));
                     }
@@ -610,6 +617,7 @@ QSet<Symbol *> GrammarAnalyzer::calcuFollow(NonTerminal *nonTerm)
             }
         }
     }
+    follow.remove(blankTerm);
     nonTerm->follow = follow;
     return follow;
 }
@@ -646,27 +654,46 @@ void GrammarAnalyzer::reScaleAnalyTable()
 
 void GrammarAnalyzer::fillTableProd(Production *prod)
 {
+    QSet<Symbol *> follow = calcuFollow(prod->lhs);
+    bool isFollowSynched = false;
     for(int  i = 0; i < prod->rhs.size(); i++) {
            QSet<Symbol *> first = calcuFirst(prod->rhs[i]);
-           QSet<Symbol *> follow = calcuFollow(prod->lhs);
            bool isFirstContainsBlank = first.contains(blankTerm);
            first.remove(blankTerm);
-           // 若 epsilon 在 First  集中 则对应 Follow集中除 epsilon 的所有终结符置表项
-           // 若 epsilon 不在 First  集中 则对应 Follow集中除 epsilon 的所有终结符置同步符号项
-           Production* singleProd = (Production*) new  Production();
-           singleProd->setLhs(prod->getLhs());
-           singleProd->rhs.push_back(prod->rhs[i]);
-           for(QSet<Symbol*>::Iterator iter = follow.begin(); iter != follow.end(); iter++) {
-               if(isFirstContainsBlank) {
-                   setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, singleProd);
-               } else {
-                   setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::SYNCH);
-               }
+           follow.remove(blankTerm);
+
+           // 当 First 集 为空或仅含 epsilon 时 只要Follow集中元素不向分析表中置入表项
+           // 则无需创建产生式 避免内存泄漏
+           Production* singleProd = nullptr;
+           if(!(first.isEmpty() && (!isFirstContainsBlank || follow.isEmpty()))) {
+               singleProd = (Production*) new  Production();
+               singleProd->setLhs(prod->getLhs());
+               singleProd->rhs.push_back(prod->rhs[i]);
            }
 
-           for(QSet<Symbol*>::Iterator iter = first.begin(); iter != first.end(); iter++) {
-               setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, singleProd);
-           }
+           // 默认 First集 中除 epsilon 以外的终结符置表项
+          for(QSet<Symbol*>::Iterator iter = first.begin(); iter != first.end(); iter++) {
+              if(singleProd == nullptr) {continue; }
+              singleProd->refInc();
+              setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, singleProd);
+          }
+
+           // 若 epsilon 在 First  集中 则对应 Follow集中除 epsilon 的所有终结符置表项
+          // 若 -> epsilon 表达式被多次填充 则说明不是 LL(1) 文法
+          for(QSet<Symbol*>::Iterator iter = follow.begin(); iter != follow.end(); iter++) {
+              if(isFirstContainsBlank) {
+                  if(singleProd == nullptr) { continue; }
+                  singleProd->refInc();
+                  setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::PROD, singleProd);
+                  isFollowSynched = true;
+              }
+          }
+    }
+    // 若 Follow 集中的对应终结符表项没有被填充过 则填入同步符号集
+    if(!isFollowSynched) {
+        for(QSet<Symbol*>::Iterator iter = follow.begin(); iter != follow.end(); iter++) {
+            setAnalyTableItem(prod->lhs, ((Terminal*)(*iter)), AnalyTableItem::Type::SYNCH);
+        }
     }
 }
 
@@ -702,7 +729,10 @@ void GrammarAnalyzer::resetAnalyTable()
     for(int i = 0; i < analyTable.size(); i++) {
         for(int j = 0; j < analyTable[i].size(); j++) {
             if(analyTable[i][j].prod != nullptr) {
-                delete analyTable[i][j].prod;
+                analyTable[i][j].prod->refDec();
+                if(analyTable[i][j].prod->canDestroy()) {
+                    delete analyTable[i][j].prod;
+                }
             }
         }
         analyTable[i].clear();
@@ -761,11 +791,13 @@ int GrammarAnalyzer::analyseHandler()
 //            sendErrorMsg("访问了错误的表项"); return -1;
             sendAnalyOutput("访问了错误的表项，跳过输入符号" + lexName);
             isNeedNextInput = true;
+            return 0;
         }
         // 遇到同步符号
         else if(analyTable[x][y].isSynch()) {
             sendAnalyOutput("Synch 同步，弹出" + analyStack.back()->getName());
             analyStack.pop_back();
+            return 0;
         }
         // 弹出并倒序压栈产生式右部
         else {
@@ -775,6 +807,7 @@ int GrammarAnalyzer::analyseHandler()
             for(int i = prod->rhs[0].size() - 1; i >= 0; i--) {
                 analyStack.push_back(prod->rhs[0][i]);
             }
+            return 0;
         }
     }
     // 栈顶为终结符但不是 # end 符号 则弹出并获取新的输入符号

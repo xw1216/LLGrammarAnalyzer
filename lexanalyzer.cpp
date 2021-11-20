@@ -384,7 +384,7 @@ int LexAnalyzer::lexAnalyByStep(QString &symbol, QString & content)
     }
     symbol = symbolMsg;
     content = symbolContent;
-    return isEnd ? 0 : 1;
+    return isEnd ? 1 : 0;
 }
 
 QStringList::Iterator LexAnalyzer::getSymbolBegin()

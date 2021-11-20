@@ -62,6 +62,7 @@ void MainWindow::on_EstablishGrammarBtn_clicked()
     } else {
         ui->ViewGrammarBtn->setEnabled(true);
         ui->ViewGrammarBtn->setEnabled(true);
+        isGrammarReady = true;
         sendMsg("语法建立成功");
     }
     if(isLexReady) {
@@ -231,10 +232,10 @@ void MainWindow::setProcTableHeader()
     insertTableHeader("输入符号", 1);
     insertTableHeader("输入内容", 2);
     insertTableHeader("执行动作", 3);
-    ui->ProcStatusTable->setColumnWidth(0, 100);
-    ui->ProcStatusTable->setColumnWidth(1, 100);
-    ui->ProcStatusTable->setColumnWidth(2, 150);
-    ui->ProcStatusTable->setColumnWidth(3, 150);
+    ui->ProcStatusTable->setColumnWidth(0, 90);
+    ui->ProcStatusTable->setColumnWidth(1, 90);
+    ui->ProcStatusTable->setColumnWidth(2, 100);
+    ui->ProcStatusTable->setColumnWidth(3, 300);
 }
 
 void MainWindow::insertTableHeader(QString title, int index)
@@ -265,7 +266,7 @@ void MainWindow::on_ResetGrammarBtn_clicked()
 {
     toggleBtns(false);
     ui->ViewGrammarBtn->setEnabled(false);
-    ui->EstablishGrammarBtn->setEnabled(false);
+    ui->EstablishGrammarBtn->setEnabled(true);
     isGrammarReady = false;
     util.resetGrammar();
     resetGrammarAnalyStatus();

@@ -19,10 +19,14 @@ public:
     void insertProduction(QVector<Symbol*> & prod);
     bool isLeftRecursion();
     bool isSharedPrefix();
+    void refInc();
+    void refDec();
+    bool canDestroy();
 
 private:
     NonTerminal* lhs = nullptr;
     QVector<QVector<Symbol*>> rhs;
+    int refCnt = 0;
 };
 
 #endif // PRODUCTION_H

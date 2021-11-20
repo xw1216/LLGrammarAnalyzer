@@ -87,17 +87,18 @@ void Form::engageAnalyTable()
     ui->viewTable->setColumnCount(col);
     ui->viewTable->setRowCount(row);
     for(int i = 0; i < row; i++) {
-        insertTableHeader(util->getAnalyTableRowHeader(i), i);
+        insertTableHeader(util->getAnalyTableRowHeader(i), i, false);
     }
     for(int i = 0; i < col; i++) {
-        insertTableHeader(util->getAnalyTableColHeader(i), i, false);
+        insertTableHeader(util->getAnalyTableColHeader(i), i);
     }
     for(int i = 0; i < row; i++) {
         for(int j = 0; j < col; j++) {
-            insertTableItem(row, col, util->getAnalyTableItem(row, col));
+            insertTableItem(i, j, util->getAnalyTableItem(i, j));
         }
     }
     ui->viewTable->resizeColumnsToContents();
+    ui->viewTable->resizeRowsToContents();
 }
 
 void Form::engageAnalyStack()
@@ -108,15 +109,15 @@ void Form::engageAnalyStack()
     insertTableHeader("栈内元素", 0);
     int cnt = strList.size();
     for(int i = cnt - 1; i >= 0; i--) {
-        insertTableItem(0, i - cnt + 1, strList[i]);
+        insertTableItem(0, cnt - 1 - i, strList[i]);
     }
-    ui->viewTable->resizeColumnsToContents();
+    ui->viewTable->setColumnWidth(0, 500);
 }
 
 void Form::setTableScale(int row, int coloum)
 {
-    ui->viewTable->setColumnCount(coloum);
     ui->viewTable->setRowCount(row);
+    ui->viewTable->setColumnCount(coloum);
 }
 
 void Form::resetTable()

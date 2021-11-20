@@ -4,7 +4,7 @@ const QStringList Terminal::terminalList = {
         "blank", "void", "int", "long", "float", "double","bool",
         "string", "if", "elif", "else", "return","while", "for",
         "break", "continue", "switch","case", "default",
-        "true", "false", "id", "integer", "floatnum", "str",
+        "true", "false", "null", "id", "integer", "floatnum", "str",
 
         "assign", "plus", "sub", "mul", "div", "mod", "eq",
         "gre", "geq", "les", "leq", "neq", "and", "or", "not",

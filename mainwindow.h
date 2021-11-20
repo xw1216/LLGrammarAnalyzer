@@ -31,7 +31,6 @@ private slots:
     void on_ViewAnalyTableBtn_clicked();
     void on_ViewAnalyStackBtn_clicked();
     void on_SrcTextEditor_textChanged();
-
     void on_ResetGrammarBtn_clicked();
 
 private:
