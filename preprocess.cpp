@@ -51,7 +51,7 @@ void PreProcess::mainRecognize()
             break;
         default:
             if(src->at(stateBase).toLatin1() == 0) {
-            throw QString("无法识别的字符"); }
+            throw QString("无法识别的字符。"); }
             break;
         }
         stateBase++;
@@ -131,13 +131,13 @@ QString PreProcess::getFilePath()
     QString filename;
     char ascii = src->at(lexForward).toLatin1();
     if(ascii != '"') {
-       throw QString("文件路径错误");
+       throw QString("文件路径错误。");
     } else {
-        if(lexForward >= src->length() - 1) {throw QString("文件路径错误");}
+        if(lexForward >= src->length() - 1) {throw QString("文件路径错误。");}
         lexForward++;
         for(;  lexForward < src->length() ; lexForward++) {
             ascii = (src->at(lexForward)).toLatin1();
-            if(ascii == '\t' | ascii == '\n' | ascii == '\r') { throw QString("文件路径错误"); }
+            if(ascii == '\t' | ascii == '\n' | ascii == '\r') { throw QString("文件路径错误。"); }
             if(ascii == '"') {break;}
             filename.push_back(src->at(lexForward));
         }
@@ -163,7 +163,7 @@ void PreProcess::setIncludeFile()
     // open target file
     QString filename = getFilePath();
     QString fileText;
-    if(!openFile(filename, fileText)) { throw QString("无法包含该文件"); }
+    if(!openFile(filename, fileText)) { throw QString("无法包含该文件。"); }
     // include files recursivly
     // TODO: exception may cause memory leak fix it
     recursiveFileProcess(fileText);
@@ -237,7 +237,7 @@ void PreProcess::macroHandle()
     } else if (macro == QString("define")) {
         setDefineSymbol();
     } else {
-        throw QString("无法识别的预处理指令");
+        throw QString("无法识别的预处理指令。");
     }
 }
 

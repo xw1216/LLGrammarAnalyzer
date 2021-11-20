@@ -1,0 +1,25 @@
+Program @ Type ID $lpar InnerVarDeclare $rpar SyntaxBlock
+Type @ $int | $void | $long | $float | $double | $bool | $string
+SyntaxBlock @ $lbrc OuterVarDeclare SyntaxCluster $rbrc
+InnerVarDeclare @ $blank | VariableDeclare InnerVarDeclareEnd
+InnerVarDeclareEnd @ $blank | $cma VariableDeclare InnerVarDeclareEnd
+OuterVarDeclare @ $blank | VariableDeclare $smc OuterVarDeclare
+VariableDeclare @ Type ID
+SyntaxCluster @ Syntax $smc SyntaxClusterLoop
+SyntaxClusterLoop @ $blank | Syntax $smc SyntaxClusterLoop
+Syntax @ If | While | Return | Assign
+Assign @ ID $assign Expression
+Return @ $return | $return Expression
+While @ $while $lpar Expression $rpar SyntaxBlock
+If @ $if $lpar Expression $rpar SyntaxBlock Else
+Else @ $blank | $else SyntaxBlock
+Expression @ AddExpr ExpressionLoop
+ExpressionLoop @ $blank | Relop AddExpr ExpressionLoop
+Relop @ $eq | $gre | $geq | $les | $leq | $neq
+AddExpr @ Item AddExprLoop
+AddExprLoop @ $blank | $plus Item AddExprLoop | $sub Item AddExprLoop
+Item @ Factor ItemLoop
+ItemLoop @ $blank | $mul Factor ItemLoop | $div Factor ItemLoop
+Factor @ ID | Num | $str | $lpar Expression $rpar
+ID @ $id
+Num @ $integer | $floatnum

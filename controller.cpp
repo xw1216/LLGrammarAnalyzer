@@ -63,11 +63,16 @@ bool Controller::establishGrammar()
 
 void Controller::resetGrammar()
 {
+    lexAnaly->setSrc(srcCode);
+    lexAnaly->initUtil();
     grammarAnaly->resetGrammarAnalyzer();
 }
 
 void Controller::resetGrammarAnalyStatus()
 {
+    lexAnaly->setSrc(srcCode);
+    lexAnaly->initUtil();
+    grammarAnaly->resetAnalyStatus();
     grammarAnaly->initAnalyStack();
 }
 

@@ -1,0 +1,25 @@
+/* This is a comment */
+
+#define ZERO 0
+
+// The  float  is a redundant return type grammar fault 
+// The last comma in program's parameter list  is a grammar fault
+int float program ( int a, int b, int c ,)
+{
+	int i;
+	int j;
+	i = ZERO;
+	// void type variable declaration grammar fault
+	void;
+
+	if ( a > ( b + c ) ) {
+		j = a + ( b * c + 1 );
+	} else {
+		j = a;
+	};
+
+	while( i <= 100 ) {
+		i = j * 2;
+	}; ;	// Redundant simecolon grammar fault
+	return i;
+}

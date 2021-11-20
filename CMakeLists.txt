@@ -41,10 +41,11 @@ set(PROJECT_SOURCES
         form.h
         form.cpp
         form.ui
+        logo.rc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(GrammarAnalyzer
+    qt_add_executable(GrammarAnalyzer WIN32 MACOSX_BUNDLE
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
     )
@@ -60,7 +61,7 @@ else()
 # Define properties for Android with Qt 5 after find_package() calls as:
 #    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
-        add_executable(GrammarAnalyzer
+        add_executable(GrammarAnalyzer WIN32 MACOSX_BUNDLE
             ${PROJECT_SOURCES}
         )
     endif()

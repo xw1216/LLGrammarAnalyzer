@@ -180,8 +180,8 @@ void LexAnalyzer::symbolRecogHandler(QChar &ch, QString & str)
     if(index != -1) {
         generateSymbolFlag(keywordList[index], SymbolItem::Type::KEYWORD);
     } else {
-        generateSymbolFlag(str, SymbolItem::Type::ID);
         pushId(str);
+        generateSymbolFlag(str, SymbolItem::Type::ID);
     }
     str.clear();
 }
@@ -194,11 +194,11 @@ void LexAnalyzer::numberRecogHandler(QChar &ch, QString &str)
     }
     scanBackspace();
     if(str.contains('.')) {
-        generateSymbolFlag(str, SymbolItem::Type::FLOAT);
         pushConstant(str, SymbolItem::Type::FLOAT);
+        generateSymbolFlag(str, SymbolItem::Type::FLOAT);
     } else {
-        generateSymbolFlag(str, SymbolItem::Type::INTEGER);
         pushConstant(str, SymbolItem::Type::INTEGER);
+        generateSymbolFlag(str, SymbolItem::Type::INTEGER);
     }
     str.clear();
 }
@@ -210,8 +210,8 @@ void LexAnalyzer::stringRecogHandler(QChar &ch, QString &str)
         str.push_back(ch);
         ch = getNextChar();
     }
-    generateSymbolFlag(str, SymbolItem::Type::STRING);
     pushConstant(str, SymbolItem::Type::STRING);
+    generateSymbolFlag(str, SymbolItem::Type::STRING);
     str.clear();
 }
 
@@ -308,13 +308,13 @@ void LexAnalyzer::generateSymbolFlag(QString symbolStr, SymbolItem::Type type)
     propName = "<" + termName + ", ";
     switch (type) {
     case SymbolItem::Type::ID:
-        propName = propName + QString::number(identifierList.size()) + ">"; break;
         termContent = identifierList.last().getValue();
+        propName = propName + QString::number(identifierList.size()) + ">"; break;
     case SymbolItem::Type::INTEGER:
     case SymbolItem::Type::FLOAT:
     case SymbolItem::Type::STRING:
+        termContent = constantList.last().getValue();
         propName = propName + QString::number(constantList.size()) + ">"; break;
-        termName = constantList.last().getValue();
     case SymbolItem::Type::KEYWORD:
         propName = propName + "->"; break;
     case SymbolItem::Type::OPERATOR:

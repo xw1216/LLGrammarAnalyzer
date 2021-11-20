@@ -20,7 +20,7 @@ bool GrammarParser::readGrammarFile()
 //    QDir dir = QDir(QDir::currentPath()).filePath("grammar.txt");
 //    QDir dir = QDir("../grammar.txt");
 //    if(!dir.exists()) {return false; }
-     QFile file("../grammar.txt");
+     QFile file("./grammar.txt");
     if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) { return false; }
     QTextStream stream(&file);
     stream.setAutoDetectUnicode(true);

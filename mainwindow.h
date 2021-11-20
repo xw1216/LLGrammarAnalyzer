@@ -4,6 +4,7 @@
 #include "form.h"
 #include "controller.h"
 
+#include <QScrollBar>
 #include <QPlainTextEdit>
 #include <QMessageBox>
 #include <QMainWindow>
@@ -56,5 +57,7 @@ private:
     void insertTableHeader(QString title, int index);
     void insertTableItem(int row, int col, QString cont);
     void pushMsgTableItem(GrammarAnalyzer::OutMsg & outMsg);
+
+    void moveTableScrollFocus();
 };
 #endif // MAINWINDOW_H

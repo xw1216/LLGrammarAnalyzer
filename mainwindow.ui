@@ -314,7 +314,7 @@
               </font>
              </property>
              <property name="text">
-              <string>无异常信息。</string>
+              <string>无信息。</string>
              </property>
             </widget>
            </item>

@@ -20,9 +20,9 @@ void MainWindow::on_OpenSrcFileBtn_clicked()
 {
     QString srcCode = getOpenFileCont(this);
     if(srcCode.isEmpty()) {
-        sendMsg("文件内容为空");
+        sendMsg("文件内容为空。");
     }
-    sendMsg("成功打开文件");
+    sendMsg("成功打开文件。");
     ui->SrcTextEditor->setPlainText(srcCode);
 }
 
@@ -31,16 +31,19 @@ void MainWindow::on_PreProcessBtn_clicked()
 {
     QString srcCode = ui->SrcTextEditor->toPlainText();
     if(srcCode.isEmpty()) {
-        sendMsg("预处理文件内容为空");
-        tipWindow( "非法输入", "输入不能为空");
+        sendMsg("预处理文件内容为空。");
+        tipWindow( "非法输入", "输入不能为空。");
         return;
     }
-    if(!(util.startProProcess(srcCode))) {
-        sendMsg(util.getPreProcessErrMsg());
+    try {
+        util.startProProcess(srcCode);
+    }  catch (QString e) {
+        sendMsg(e);
         tipWindow("预处理出错", util.getPreProcessErrMsg());
     }
+
     ui->SrcTextEditor->setPlainText(util.getSrcCode());
-    sendMsg("预处理成功");
+    sendMsg("预处理成功。");
     isLexReady = true;
 
     // 如果语法已经建立完毕 解禁后续按钮
@@ -52,19 +55,27 @@ void MainWindow::on_PreProcessBtn_clicked()
 
 void MainWindow::on_EstablishGrammarBtn_clicked()
 {
-    if(!(util.initGrammarAnaly())) {
-        sendMsg(util.getErrMsg());
-        tipWindow("语法出错","无法读取语法文件");
+    try {
+        util.initGrammarAnaly();
+    }  catch (QString e) {
+        sendMsg(e);
+        tipWindow("语法出错","无法读取语法文件。");
+        return;
     }
-    if(!(util.establishGrammar())) {
-        sendMsg(util.getGrammarAnalyErrMsg());
-        tipWindow("建立语法出错", util.getGrammarAnalyErrMsg());
-    } else {
-        ui->ViewGrammarBtn->setEnabled(true);
-        ui->ViewGrammarBtn->setEnabled(true);
-        isGrammarReady = true;
-        sendMsg("语法建立成功");
+
+    try {
+        util.establishGrammar();
+    }  catch (QString e) {
+         sendMsg(e);
+         tipWindow("建立语法出错", util.getGrammarAnalyErrMsg());
+         return;
     }
+
+    ui->ViewGrammarBtn->setEnabled(true);
+    ui->ViewGrammarBtn->setEnabled(true);
+    isGrammarReady = true;
+    sendMsg("语法建立成功。");
+
     if(isLexReady) {
         toggleBtns(true);
     }
@@ -79,32 +90,49 @@ void MainWindow::on_ViewGrammarBtn_clicked()
 
 void MainWindow::on_AnalyStepBtn_clicked()
 {
-    int analyStatus = util.grammarAnalyStep();
+    ui->AnalyAllBtn->setEnabled(false);
+    int analyStatus = 0 ;
+    try {
+        analyStatus = util.grammarAnalyStep();
+    }  catch (QString e) {
+        sendMsg(e);
+        tipWindow("分析错误", util.getGrammarAnalyErrMsg());
+        return;
+    }
+
     if(analyStatus < 0) {
         sendMsg(util.getGrammarAnalyErrMsg());
         return;
     } else if (analyStatus == 1) {
-        sendMsg("分析成功");
+        sendMsg("分析成功。");
         ui->AnalyStepBtn->setEnabled(false);
         ui->AnalyAllBtn->setEnabled(false);
     } else {
         analyStepCnt++;
-        sendMsg("单步分析， 第" + QString::number(analyStepCnt)  + "步。");
+        sendMsg("单步分析， 第 " + QString::number(analyStepCnt)  + " 步。");
     }
     GrammarAnalyzer::OutMsg outMsg = util.getGrammarAnalyStepMsg();
     pushMsgTableItem(outMsg);
-
+    moveTableScrollFocus();
+    ui->ProcStatusTable->resizeColumnToContents(3);
 }
 
 
 void MainWindow::on_AnalyAllBtn_clicked()
 {
-    bool analyStatus = util.grammarAnalyAll();
+    bool analyStatus = false;
+    try {
+        analyStatus = util.grammarAnalyAll();
+    }  catch (QString e) {
+        sendMsg(e);
+        tipWindow("单步分析错误 ", util.getGrammarAnalyErrMsg());
+    }
+
     if(!analyStatus) {
         sendMsg(util.getErrMsg());
         return;
     } else {
-        sendMsg("分析成功");
+        sendMsg("分析成功。");
         ui->AnalyStepBtn->setEnabled(false);
         ui->AnalyAllBtn->setEnabled(false);
         Controller::MsgIter msgsIter = util.getAnalyMsgBegin();
@@ -114,12 +142,15 @@ void MainWindow::on_AnalyAllBtn_clicked()
             pushMsgTableItem(*msgsIter);
         }
     }
+    ui->ProcStatusTable->resizeColumnsToContents();
 }
 
 
 void MainWindow::on_ResetAnalyBtn_clicked()
 {
     resetGrammarAnalyStatus();
+    ui->AnalyStepBtn->setEnabled(true);
+    ui->AnalyAllBtn->setEnabled(true);
 }
 
 
@@ -156,12 +187,13 @@ void MainWindow::initUI()
 void MainWindow::initUtil()
 {
     setProcTableHeader();
+
 }
 
 QString MainWindow::getOpenFileCont(QWidget* parent)
 {
     QString curPath = QDir::currentPath();
-    QString dialogTitle = "请选择一个类C代码文件";
+    QString dialogTitle = "选择类C代码文件";
     QString filter = "文本文件(*.txt);;类C代码(*.c)";
     QString filename = QFileDialog::getOpenFileName(parent, dialogTitle, curPath, filter);
     if(filename.isEmpty()) {
@@ -259,6 +291,12 @@ void MainWindow::pushMsgTableItem(GrammarAnalyzer::OutMsg &outMsg)
     insertTableItem(targetRow, 1, outMsg.inputType);
     insertTableItem(targetRow, 2, outMsg.inputCont);
     insertTableItem(targetRow, 3, outMsg.action);
+}
+
+void MainWindow::moveTableScrollFocus()
+{
+    QScrollBar* bar = ui->ProcStatusTable->verticalScrollBar();
+    bar->setValue(bar->maximum());
 }
 
 

@@ -14,11 +14,14 @@ public:
 
     void setLhs(NonTerminal* lhs);
     NonTerminal* getLhs() const;
+
     void insertRhs(Symbol* rhs);
     void newProduction();
     void insertProduction(QVector<Symbol*> & prod);
+
     bool isLeftRecursion();
     bool isSharedPrefix();
+
     void refInc();
     void refDec();
     bool canDestroy();

@@ -41,17 +41,17 @@ bool GrammarAnalyzer::initGrammarAnalyzer()
     errMsg.clear();
     if(parser == nullptr)
     {
-        sendErrorMsg("未能建立语法解析器");
+        sendErrorMsg("未能建立语法解析器。");
         return false;
     }
 
     if(lex == nullptr) {
-        sendErrorMsg("未连接词法分析器");
+        sendErrorMsg("未连接词法分析器。");
         return false;
     }
 
     if(!(parser->initParser())) {
-        sendErrorMsg("无法打开语法描述文件");
+        sendErrorMsg("无法打开语法描述文件。");
         return false;
     }
     return true;
@@ -63,7 +63,7 @@ bool GrammarAnalyzer::parseGrammarFile()
     parser->startParser();
     parser->getGrammar(grammar);
     if(grammar.size() <= 0) {
-        sendErrorMsg("语法解析错误");
+        sendErrorMsg("语法解析错误。");
         return false;
     }
     startNonTerm = grammar[0]->getLhs();
@@ -115,7 +115,7 @@ int GrammarAnalyzer::grammarAnalyStep()
     int lexStatus = getLexInput();
 
     if(lexStatus < 0) {
-        sendErrorMsg("词法分析器错误");
+        sendErrorMsg("词法分析器错误。");
         return -1;
     } else if(lexStatus == 1) {
         lexName = "end";
@@ -702,7 +702,7 @@ bool GrammarAnalyzer::setAnalyTableItem(NonTerminal *lhs, Terminal *term, AnalyT
     int x = -1, y = -1;
     getTableItemPos(lhs, term, x, y);
     if(x < 0 || y < 0 || !analyTable[x][y].isBlank()) {
-        sendErrorMsg("分析表建立错误：表项不存在或入口冲突");
+        sendErrorMsg("分析表建立错误：表项不存在或入口冲突。");
         return false;
     }
     if(type == AnalyTableItem::Type::PROD && prod != nullptr) {
@@ -756,7 +756,7 @@ bool GrammarAnalyzer::grammarAnalyse()
     while(lexStatus == 0) {
         lexStatus = getLexInput();
         if(lexStatus < 0) {
-            sendErrorMsg("词法分析器错误");
+            sendErrorMsg("词法分析器错误。");
             return false;
         } else if(lexStatus == 1) {
             lexName = "end";
@@ -779,7 +779,7 @@ bool GrammarAnalyzer::grammarAnalyse()
 int GrammarAnalyzer::analyseHandler()
 {
     Terminal* term = findTerminal(lexName);
-    if(!term) { sendErrorMsg("语法不支持该符号"); return -1; }
+    if(!term) { sendErrorMsg("语法不支持该符号。"); return -1; }
 
     // 栈顶为非终结符 遇到空则产生错误或跳过 遇到同步符号则弹出 遇到产生式则弹出并倒序压栈产生式右部
     if(analyStack.back()->getType() == Symbol::Type::NONTERMINAL) {
@@ -789,7 +789,7 @@ int GrammarAnalyzer::analyseHandler()
         // 遇到空
         if(analyTable[x][y].isBlank()) {
 //            sendErrorMsg("访问了错误的表项"); return -1;
-            sendAnalyOutput("访问了错误的表项，跳过输入符号" + lexName);
+            sendAnalyOutput("访问了错误的表项，跳过输入符号 " + lexName + " 。");
             isNeedNextInput = true;
             return 0;
         }
@@ -813,14 +813,14 @@ int GrammarAnalyzer::analyseHandler()
     // 栈顶为终结符但不是 # end 符号 则弹出并获取新的输入符号
     else if(analyStack.back()->getType() == Symbol::Type::TERMINAL
               && analyStack.back()->getName() != "end") {
-            sendAnalyOutput("弹出" + analyStack.back()->getName() + " , 输入前进");
+            sendAnalyOutput("弹出 " + analyStack.back()->getName() + " , 输入前进。");
             analyStack.pop_back();
             isNeedNextInput = true;
             return 0;
     }
     // 分析成功
     else if (analyStack.back()->getName() == "end"){
-        sendAnalyOutput("语法分析成功");
+        sendAnalyOutput("语法分析成功。");
         return 1;
     }
     return -1;
